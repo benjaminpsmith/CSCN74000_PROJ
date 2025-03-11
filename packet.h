@@ -8,6 +8,7 @@ class Packet
 {
 public:
     enum class Flag{
+        EMPTY = 0,
         BB = 1,
         IMG = 2,
         AUTH = 3,
@@ -38,12 +39,95 @@ private:
         }TAIL;
     }PACKET;
 
+    char* outBuffer; // What data will be stored in after being serialized
+
 public:
     // Constructor and Destructor
-    Packet();
-    Packet(char* rawData);
-    Packet(const Packet &src);
-    ~Packet();
+    Packet(){
+
+        PACKET.HEADER.src = '0';    // default src/dest?
+		PACKET.HEADER.dest = '0';   // default src/dest?
+		PACKET.HEADER.flag = Flag::EMPTY;
+        PACKET.HEADER.seqNum = 0;
+        PACKET.HEADER.totalCount = 0;
+		PACKET.HEADER.bodyLen = 0;
+
+		PACKET.BODY.data = nullptr;
+
+		PACKET.TAIL.crc = 0;
+
+		outBuffer = nullptr;
+    }
+    Packet(char* rawData){ // This is the "deserialize" function
+
+        size_t offset = 0;
+
+        // Header
+        // Src
+        memcpy(&PACKET.HEADER.src, rawData + offset, sizeof(PACKET.HEADER.src));
+        offset += sizeof(PACKET.HEADER.src);
+
+        // Dest
+        memcpy(&PACKET.HEADER.dest, rawData + offset, sizeof(PACKET.HEADER.dest));
+        offset += sizeof(PACKET.HEADER.dest);
+
+        // Flag
+        memcpy(&PACKET.HEADER.flag, rawData + offset, sizeof(PACKET.HEADER.flag));
+        offset += sizeof(PACKET.HEADER.flag);
+
+        // Seq. Number
+        memcpy(&PACKET.HEADER.seqNum, rawData + offset, sizeof(PACKET.HEADER.seqNum));
+        offset += sizeof(PACKET.HEADER.seqNum);
+
+        // Total Count
+        memcpy(&PACKET.HEADER.totalCount, rawData + offset, sizeof(PACKET.HEADER.totalCount));
+        offset += sizeof(PACKET.HEADER.totalCount);
+
+        // Body Length
+        memcpy(&PACKET.HEADER.bodyLen, rawData + offset, sizeof(PACKET.HEADER.bodyLen));
+        offset += sizeof(PACKET.HEADER.bodyLen);
+
+        // Body
+        // Data
+        PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
+        memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen);
+        offset += PACKET.HEADER.bodyLen;
+
+        // Tail
+        // CRC
+        memcpy(&PACKET.TAIL.crc, rawData + offset, sizeof(PACKET.TAIL.crc));
+
+        outBuffer = nullptr;
+    }
+    Packet(const Packet &srcPkt){ // Copy constructor
+        // Header
+        this->PACKET.HEADER.src = srcPkt.PACKET.HEADER.src;
+		this->PACKET.HEADER.dest = srcPkt.PACKET.HEADER.dest;
+		this->PACKET.HEADER.seqNum = srcPkt.PACKET.HEADER.seqNum;
+		this->PACKET.HEADER.flag = srcPkt.PACKET.HEADER.flag;
+		this->PACKET.HEADER.bodyLen = srcPkt.PACKET.HEADER.bodyLen;
+		
+		// Body
+		if (srcPkt.PACKET.HEADER.bodyLen > 0) {
+			this->PACKET.BODY.data = new char[srcPkt.PACKET.HEADER.bodyLen];
+			memcpy(this->PACKET.BODY.data, srcPkt.PACKET.BODY.data, srcPkt.PACKET.HEADER.bodyLen);
+		}
+		else {
+			this->PACKET.BODY.data = nullptr;
+		}
+
+		// Tail
+		this->PACKET.TAIL.crc = srcPkt.PACKET.TAIL.crc;
+
+		// 
+		this->outBuffer = srcPkt.outBuffer;
+    }
+    ~Packet(){
+        if (PACKET.BODY.data)
+            delete[]PACKET.BODY.data;
+        if (outBuffer)
+            delete[]outBuffer;
+    }
 
     // Setters and Getters
     void setSrc(uint32_t src) { PACKET.HEADER.src = src; }
@@ -90,5 +174,49 @@ public:
     void setCrc(unsigned int crc) { PACKET.TAIL.crc = crc; }
     unsigned int getCrc() const { return PACKET.TAIL.crc; }
 
-    // Serialize and Deserialize
+    // Serialize
+    const char* Serialize(unsigned int* bytes){
+
+        size_t offset = 0; // How far "over" we need to offset our memcpy by when serializing
+
+        // Calculate the size of the entire packet
+        *bytes = sizeof(PACKET.HEADER.src) + sizeof(PACKET.HEADER.dest) + sizeof(PACKET.HEADER.flag) + sizeof(PACKET.HEADER.seqNum) + sizeof(PACKET.HEADER.totalCount) + sizeof(PACKET.HEADER.bodyLen) + PACKET.HEADER.bodyLen + sizeof(PACKET.TAIL.crc);
+        
+        // Delete the data in outBuffer if it is not already empty/nullptr
+        if(outBuffer)
+            delete[]outBuffer;
+
+        outBuffer = new char[*bytes];
+        memset(outBuffer, 0, *bytes);
+
+        // Packet Header
+        // Src
+        memcpy(outBuffer + offset, &PACKET.HEADER.src, sizeof(PACKET.HEADER.src));
+        offset += sizeof(PACKET.HEADER.src);
+        // Dest
+        memcpy(outBuffer + offset, &PACKET.HEADER.dest, sizeof(PACKET.HEADER.dest));
+        offset += sizeof(PACKET.HEADER.dest);
+        // Flag
+        memcpy(outBuffer + offset, &PACKET.HEADER.flag, sizeof(PACKET.HEADER.flag));
+        offset += sizeof(PACKET.HEADER.flag);
+        // Seq. Num
+        memcpy(outBuffer + offset, &PACKET.HEADER.seqNum, sizeof(PACKET.HEADER.seqNum));
+        offset += sizeof(PACKET.HEADER.seqNum);
+        // Total Count
+        memcpy(outBuffer + offset, &PACKET.HEADER.totalCount, sizeof(PACKET.HEADER.totalCount));
+        offset += sizeof(PACKET.HEADER.totalCount);
+        // Body Length
+        memcpy(outBuffer + offset, &PACKET.HEADER.bodyLen, sizeof(PACKET.HEADER.bodyLen));
+        offset += sizeof(PACKET.HEADER.bodyLen);
+        // Packet Body
+        // Body
+        memcpy(outBuffer + offset, PACKET.BODY.data, PACKET.HEADER.bodyLen);
+        offset += PACKET.HEADER.bodyLen;
+        // Packet Tail
+        // CRC
+        memcpy(outBuffer + offset, &PACKET.TAIL.crc, sizeof(PACKET.TAIL.crc));
+        offset += sizeof(PACKET.TAIL.crc);
+
+        return outBuffer;
+    }
 };
