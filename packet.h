@@ -158,6 +158,10 @@ public:
 			PACKET.BODY.data = nullptr;
 		}
 
+        if(bytes > MAX_BODY_LENGTH){
+            return;
+        }
+
         // If no data, set body length to 0
 		if (bytes <= 0) {
 			PACKET.HEADER.bodyLen = 0;
