@@ -1,1 +1,4 @@
 .vscode/settings.json
+server.exe
+.gitignore
+.vscode/tasks.json

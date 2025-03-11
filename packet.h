@@ -1,4 +1,5 @@
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 using namespace std;
 
@@ -58,7 +59,7 @@ public:
 
 		outBuffer = nullptr;
     }
-    Packet(char* rawData){ // This is the "deserialize" function
+    Packet(const char* rawData){ // This is the "deserialize" function
 
         size_t offset = 0;
 
@@ -171,16 +172,21 @@ public:
     }
     char* getData() const { return PACKET.BODY.data; }
 
+    // Setters and Getters cont.
     void setCrc(unsigned int crc) { PACKET.TAIL.crc = crc; }
     unsigned int getCrc() const { return PACKET.TAIL.crc; }
 
     // Serialize
     const char* Serialize(unsigned int* bytes){
 
+        if (!bytes) return nullptr;
+
         size_t offset = 0; // How far "over" we need to offset our memcpy by when serializing
 
         // Calculate the size of the entire packet
-        *bytes = sizeof(PACKET.HEADER.src) + sizeof(PACKET.HEADER.dest) + sizeof(PACKET.HEADER.flag) + sizeof(PACKET.HEADER.seqNum) + sizeof(PACKET.HEADER.totalCount) + sizeof(PACKET.HEADER.bodyLen) + PACKET.HEADER.bodyLen + sizeof(PACKET.TAIL.crc);
+        *bytes = sizeof(PACKET.HEADER.src) + sizeof(PACKET.HEADER.dest) + sizeof(PACKET.HEADER.flag) + sizeof(PACKET.HEADER.seqNum) + sizeof(PACKET.HEADER.totalCount) + sizeof(PACKET.HEADER.bodyLen) +
+                    PACKET.HEADER.bodyLen + 
+                    sizeof(PACKET.TAIL.crc);
         
         // Delete the data in outBuffer if it is not already empty/nullptr
         if(outBuffer)
@@ -218,5 +224,29 @@ public:
         offset += sizeof(PACKET.TAIL.crc);
 
         return outBuffer;
+    }
+
+    // Extra Functions
+    void display() const {
+        cout << "Packet Information:" << endl;
+        cout << "-------------------" << endl;
+        cout << "Source: " << hex << PACKET.HEADER.src << dec << endl;
+        cout << "Destination: " << hex << PACKET.HEADER.dest << dec << endl;
+        cout << "Flag: " << static_cast<int>(PACKET.HEADER.flag) << endl;
+        cout << "Sequence Number: " << PACKET.HEADER.seqNum << endl;
+        cout << "Total Count: " << PACKET.HEADER.totalCount << endl;
+        cout << "Body Length: " << PACKET.HEADER.bodyLen << endl;
+    
+        cout << "Data: ";
+        if (PACKET.BODY.data && PACKET.HEADER.bodyLen > 0) {
+            for (unsigned int i = 0; i < PACKET.HEADER.bodyLen; ++i) {
+                cout << PACKET.BODY.data[i];
+            }
+        } else {
+            cout << "(empty)";
+        }
+        cout << endl;
+    
+        cout << "CRC: " << PACKET.TAIL.crc << endl;
     }
 };
