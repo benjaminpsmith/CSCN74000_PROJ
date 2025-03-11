@@ -1,1 +1,1 @@
-// Source file for main of the server
+// Source file for main of the client
