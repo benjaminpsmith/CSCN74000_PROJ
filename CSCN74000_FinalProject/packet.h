@@ -12,7 +12,7 @@ const unsigned int MIN_PACKET_LENGTH = MAX_HEADER_LENGTH;
 
 const unsigned int MAX_PACKET_LENGTH = MAX_BODY_LENGTH + MAX_HEADER_LENGTH;
 
-class Packet
+class PacketDef
 {
 public:
     enum Flag : uint8_t{
@@ -52,10 +52,10 @@ private:
 
 public:
     // Constructor and Destructor
-    Packet(){
+    PacketDef(){
 
-        PACKET.HEADER.src = '0';    // default src/dest?
-		PACKET.HEADER.dest = '0';   // default src/dest?
+        PACKET.HEADER.src = '0';
+		PACKET.HEADER.dest = '0';
 		PACKET.HEADER.flag = Flag::EMPTY;
         PACKET.HEADER.seqNum = 0;
         PACKET.HEADER.totalCount = 0;
@@ -65,8 +65,10 @@ public:
 
 		PACKET.TAIL.crc = 0;
 
+        this->outBuffer = nullptr;
+
     }
-    Packet(const char* rawData, int length){ // This is the "deserialize" function
+    PacketDef(const char* rawData, int length){ // This is the "deserialize" function
 
         size_t offset = 0;
 
@@ -78,6 +80,7 @@ public:
         PACKET.HEADER.bodyLen = 0;
 
         PACKET.BODY.data = nullptr;
+        this->outBuffer = nullptr;
 
         PACKET.TAIL.crc = 0;
 
@@ -134,7 +137,7 @@ public:
         // CRC
         memcpy(&PACKET.TAIL.crc, rawData + offset, sizeof(PACKET.TAIL.crc));
     }
-    Packet(const Packet &srcPkt){ // Copy constructor
+    PacketDef(const PacketDef &srcPkt){ // Copy constructor
         // Header
         this->PACKET.HEADER.src = srcPkt.PACKET.HEADER.src;
 		this->PACKET.HEADER.dest = srcPkt.PACKET.HEADER.dest;
@@ -153,13 +156,14 @@ public:
 
 		// Tail
 		this->PACKET.TAIL.crc = srcPkt.PACKET.TAIL.crc;
+		this->outBuffer = nullptr;
 
     }
-    Packet(int preAllocationBytes)
+    PacketDef(int preAllocationBytes)
     {
         this->PACKET.BODY.data = new char[preAllocationBytes];
     }
-    ~Packet(){
+    ~PacketDef(){
         if (PACKET.BODY.data)
             delete[]PACKET.BODY.data;
     }

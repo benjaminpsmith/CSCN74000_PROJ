@@ -51,9 +51,9 @@ public:
 
 	fd createSocket();
 	int bindTo(fd* socketFd, address* targetAddress);
-	int accept(Packet& handshakePacket, address* targetAddress);
+	int accept(PacketDef& handshakePacket, address* targetAddress);
 	address createAddress(iPAddress ip, port portNum);
-	int establishConnection(Packet& handshakePacket, address* targetAddress);
+	int establishConnection(PacketDef& handshakePacket, address* targetAddress);
 	void setConnectionDetails(fd* socketFd, address* targetAddress);
 	bool isAuthenticated();
 	ConnState getAuthenticationState();

@@ -9,8 +9,8 @@ int main(void){
 
     ConnDetails connectionDetails;
     Connection flightConnection;
-    Packet received;
-    Packet toSend;
+    PacketDef received;
+    PacketDef toSend;
     bool shutdown;
     char recvBuffer[MAX_PACKET_LENGTH];
     address rxSender;
@@ -35,7 +35,7 @@ int main(void){
         {
             bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*) & rxSender, &addrLength);
             
-            received = Packet(recvBuffer, bytesRead);
+            received = PacketDef(recvBuffer, bytesRead);
             flightConnection.accept(received, &rxSender);
 
             if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
@@ -45,14 +45,14 @@ int main(void){
         }
         
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
-        received = Packet(recvBuffer, bytesRead);
+        received = PacketDef(recvBuffer, bytesRead);
 
-        if (received.getFlag() == Packet::Flag::BB)
+        if (received.getFlag() == PacketDef::Flag::BB)
         {
             //receiving telemetry from the plane to record
         }
 
-        if (received.getFlag() == Packet::Flag::IMG)
+        if (received.getFlag() == PacketDef::Flag::IMG)
         {
             //receiving request for an image to send
         }

@@ -8,14 +8,14 @@ int main(void) {
 
     ConnDetails connectionDetails;
     Connection flightConnection;
-    Packet received;
-    Packet toSend;
+    PacketDef received;
+    PacketDef toSend;
     bool shutdown;
     char recvBuffer[MAX_PACKET_LENGTH];
     address rxSender;
     int addrLength;
     int bytesRead;
-    Packet beginsHandshake;
+    PacketDef beginsHandshake;
     std::thread timerThread;
     bool secondElapsed;
 
@@ -60,7 +60,7 @@ int main(void) {
             {
                 bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
 
-                received = Packet(recvBuffer, bytesRead);
+                received = PacketDef(recvBuffer, bytesRead);
                 flightConnection.establishConnection(received, &rxSender);
             }
             
@@ -75,10 +75,10 @@ int main(void) {
 
         if (bytesRead > 0)
         {
-            received = Packet(recvBuffer, bytesRead);
+            received = PacketDef(recvBuffer, bytesRead);
 
 
-            if (received.getFlag() == Packet::Flag::IMG)
+            if (received.getFlag() == PacketDef::Flag::IMG)
             {
                 //receiving response with an image
             }
@@ -86,8 +86,6 @@ int main(void) {
         
         if (secondElapsed)
         {
-            //send BB data to ground control
-            //reqquest image
 
         }
 

@@ -8,9 +8,9 @@
 #define POSITION_LEN 10
 #define SPEED_LEN 10
 
-class BlackBox : public  Packet
+class BlackBox : public  PacketDef
 {
-	std::vector<Packet> packetizedBlackBoxData;
+	std::vector<PacketDef> packetizedBlackBoxData;
 	std::fstream blackBoxFileStream;
 	char* filePath;
 public:
@@ -18,5 +18,5 @@ public:
 	BlackBox();
 	int loadData(char* pathToImage);
 	
-	const std::vector<Packet>* getPacketList();
+	const std::vector<PacketDef>* getPacketList();
 };

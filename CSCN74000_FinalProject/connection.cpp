@@ -34,7 +34,7 @@ address Connection::createAddress(iPAddress ip, port portNum)
 	return connectionAddress;
 }
 
-int Connection::establishConnection(Packet& handshakePacket, address* targetAddress)
+int Connection::establishConnection(PacketDef& handshakePacket, address* targetAddress)
 {
 	int ret;
 	uint8_t flags;
@@ -50,7 +50,7 @@ int Connection::establishConnection(Packet& handshakePacket, address* targetAddr
 
 	if (state == ConnState::UNAUTHENTICATED && !authBit)
 	{
-		handshakePacket.setFlag(Packet::Flag::AUTH);
+		handshakePacket.setFlag(PacketDef::Flag::AUTH);
 		ret = handshakePacket.Serialize(buffer, MAX_PACKET_LENGTH);
 
 		if (ret)
@@ -62,7 +62,7 @@ int Connection::establishConnection(Packet& handshakePacket, address* targetAddr
 
 	if (state == ConnState::HANDSHAKING && authBit && ackBit)
 	{
-		handshakePacket.setFlag(Packet::Flag::ACK);
+		handshakePacket.setFlag(PacketDef::Flag::ACK);
 		ret = handshakePacket.Serialize(buffer, MAX_PACKET_LENGTH);
 
 		if (ret)
@@ -113,7 +113,7 @@ int Connection::bindTo(fd* socketFd, address* targetAddress)
 	return 1;
 }
 
-int Connection::accept(Packet& handshakePacket, address* targetAddress)
+int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 {
 	int ret;
 	uint8_t flags;
@@ -146,7 +146,7 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 		if (!ret)
 		{
 			//send AUTH + ACK
-			handshakePacket.setFlag(Packet::Flag::AUTH_ACK);
+			handshakePacket.setFlag(PacketDef::Flag::AUTH_ACK);
 			ret = handshakePacket.Serialize(buffer, MAX_PACKET_LENGTH);
 
 			if (ret)
@@ -166,7 +166,7 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 	if (state == ConnState::AUTHENTICATED)
 	{
 		//send ACK
-		handshakePacket.setFlag(Packet::Flag::ACK);
+		handshakePacket.setFlag(PacketDef::Flag::ACK);
 		ret = handshakePacket.Serialize(buffer, MAX_PACKET_LENGTH);
 
 		if (ret)

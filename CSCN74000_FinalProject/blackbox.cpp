@@ -25,7 +25,7 @@ int BlackBox::loadData(char* pathToData)
 		this->blackBoxFileStream.open(pathToData, std::fstream::in);
 		while (this->blackBoxFileStream.is_open() && !this->blackBoxFileStream.eof())
 		{
-			Packet entry(MAX_BODY_LENGTH);
+			PacketDef entry(MAX_BODY_LENGTH);
 			std::string data;
 
 			std::getline(this->blackBoxFileStream, data);
@@ -56,7 +56,7 @@ int BlackBox::loadData(char* pathToData)
 	return retVal;
 }
 
-const std::vector<Packet>* BlackBox::getPacketList()
+const std::vector<PacketDef>* BlackBox::getPacketList()
 {
 	return &this->packetizedBlackBoxData;
 }
