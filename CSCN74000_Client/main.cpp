@@ -1,6 +1,7 @@
 // Source file for main of the server
-#include "packet.h"
-#include "connection.h"
+#include "..\CSCN74000_FinalProject\packet.h"
+#include "..\CSCN74000_FinalProject\connection.h"
+#include "..\CSCN74000_FinalProject\blackbox.h"
 #include <thread>
 
 int main(void) {
