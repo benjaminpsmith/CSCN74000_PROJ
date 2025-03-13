@@ -7,9 +7,12 @@ int BlackBox::loadData(char* pathToData)
 {
 	int retVal;
 	int sequence;
+	char buffer[MAX_PACKET_LENGTH];
+	char* pBuffer;
 
 	retVal = 0;
 	sequence = 0;
+	pBuffer = buffer;
 
 	if (this->packetizedBlackBoxData.size())
 	{
@@ -23,17 +26,21 @@ int BlackBox::loadData(char* pathToData)
 		while (this->blackBoxFileStream.is_open() && !this->blackBoxFileStream.eof())
 		{
 			Packet entry(MAX_BODY_LENGTH);
-			std::string data = entry.getData();
+			std::string data;
 
 			std::getline(this->blackBoxFileStream, data);
-			data += ALTITUDE_LEN;
+			memcpy(pBuffer, data.c_str(), data.length());
+			pBuffer += ALTITUDE_LEN;
 			std::getline(this->blackBoxFileStream, data);
-			data += POSITION_LEN;
+			memcpy(pBuffer, data.c_str(), data.length());
+			pBuffer += POSITION_LEN;
 			std::getline(this->blackBoxFileStream, data);
-			data += SPEED_LEN;
+			memcpy(pBuffer, data.c_str(), data.length());
+			pBuffer += SPEED_LEN;
 			std::getline(this->blackBoxFileStream, data);
+			memcpy(pBuffer, data.c_str(), data.length());
 
-			entry.setData(data.c_str(), data.length());
+			entry.setData(pBuffer, data.length());
 			entry.setSeqNum(0);
 			entry.setTotalCount(1);
 
