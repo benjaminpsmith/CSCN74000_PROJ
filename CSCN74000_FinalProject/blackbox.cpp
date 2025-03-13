@@ -34,8 +34,8 @@ int BlackBox::loadData(char* pathToData)
 			std::getline(this->blackBoxFileStream, data);
 
 			entry.setData(data.c_str(), data.length());
-			entry.setSeqNum(sequence);
-			sequence++;
+			entry.setSeqNum(0);
+			entry.setTotalCount(1);
 
 			this->packetizedBlackBoxData.push_back(entry);
 
