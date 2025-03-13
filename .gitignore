@@ -1,4 +1,5 @@
-.vscode/settings.json
-server.exe
-.gitignore
-.vscode/tasks.json
+﻿################################################################################
+# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
+################################################################################
+
+/.vs
