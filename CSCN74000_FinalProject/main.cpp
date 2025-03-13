@@ -26,6 +26,8 @@ int main(void){
     connectionDetails.addr = flightConnection.createAddress(SERVER_IP, SERVER_PORT);
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
 
+    flightConnection.bindTo(&connectionDetails.socket, &connectionDetails.addr);
+
     while (!shutdown)
     {
         while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)

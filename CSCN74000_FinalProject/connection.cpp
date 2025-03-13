@@ -17,7 +17,7 @@ fd Connection::createSocket()
 	if (createdSocket < 0)
 	{
 		int err = WSAGetLastError();
-		perror("Error creating socket. ");
+		perror("Error creating socket.\n");
 		WSACleanup();
 	}
 	return createdSocket;
@@ -96,9 +96,16 @@ ConnState Connection::getAuthenticationState()
 	return this->state;
 }
 
-int Connection::bind(fd* socketFd, address* targetAddress)
+int Connection::bindTo(fd* socketFd, address* targetAddress)
 {
-	return 0;
+	if (bind((SOCKET)socketFd, (struct sockaddr*)targetAddress, sizeof(sockaddr)) < 0)
+	{
+		int err = WSAGetLastError();
+		perror("Error binding socket.\n");
+		return 0;
+	}
+
+	return 1;
 }
 
 int Connection::accept(Packet& handshakePacket, address* targetAddress)

@@ -17,7 +17,7 @@
 typedef struct sockaddr_in address;
 typedef const char* iPAddress;
 typedef uint16_t port;
-typedef int fd;
+typedef SOCKET fd;
 
 typedef enum CONNECTION_STATE : int8_t
 {
@@ -42,7 +42,7 @@ public:
 	Connection();
 
 	fd createSocket();
-	int bind(fd* socketFd, address* targetAddress);
+	int bindTo(fd* socketFd, address* targetAddress);
 	int accept(Packet& handshakePacket, address* targetAddress);
 	address createAddress(iPAddress ip, port portNum);
 	int establishConnection(Packet& handshakePacket, address* targetAddress);
