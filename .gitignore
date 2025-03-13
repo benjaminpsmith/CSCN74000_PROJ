@@ -1,5 +1,5 @@
-﻿################################################################################
-# This .gitignore file was automatically created by Microsoft(R) Visual Studio.
-################################################################################
-
+.vscode/settings.json
+server.exe
+.gitignore
+.vscode/tasks.json
 /.vs
