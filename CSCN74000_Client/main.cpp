@@ -78,15 +78,16 @@ int main(void) {
             received = PacketDef(recvBuffer, bytesRead);
 
 
-            if (received.getFlag() == PacketDef::Flag::IMG)
+            if (received.getFlag() == PacketDef::Flag::BB)  // The server has requested the client to send the black-box data
             {
-                //receiving response with an image
+				// We will now send the black-box data
+				send(connectionDetails.socket, toSend.Serialize(), toSend.getPacketSize(), NULL);
             }
-        }
-        
-        if (secondElapsed)
-        {
 
+			if (received.getFlag() == PacketDef::Flag::IMG) // The client has previously requested an image, and it is now being delivered.
+			{
+				// We need to store all the packets that will be used to reconstruct the image
+			}
         }
 
         if (bytesRead <= 0)

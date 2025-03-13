@@ -6,7 +6,7 @@
 #include <iostream>
 using namespace std;
 
-const unsigned int MAX_HEADER_LENGTH = 21;
+const unsigned int MAX_HEADER_LENGTH = 21;  // This may not be accurate due to byte padding and alignment
 const unsigned int MAX_BODY_LENGTH = 256;
 const unsigned int MAX_TAIL_LENGTH = 4;
 const unsigned int MIN_PACKET_LENGTH = MAX_HEADER_LENGTH + MAX_TAIL_LENGTH;
