@@ -1,3 +1,6 @@
+#ifndef HPP_PACKET
+#define HPP_PACKET
+
 #include <cstdint>
 #include <cstring>
 #include <iostream>
@@ -67,13 +70,25 @@ public:
 
         size_t offset = 0;
 
-        if (length < MIN_PACKET_SIZE)
+        PACKET.HEADER.src = '0';    // default src/dest?
+        PACKET.HEADER.dest = '0';   // default src/dest?
+        PACKET.HEADER.flag = Flag::EMPTY;
+        PACKET.HEADER.seqNum = 0;
+        PACKET.HEADER.totalCount = 0;
+        PACKET.HEADER.bodyLen = 0;
+
+        PACKET.BODY.data = nullptr;
+
+        PACKET.TAIL.crc = 0;
+
+        if (length < MIN_PACKET_LENGTH || length <= 0)
         {
             if (PACKET.BODY.data != nullptr)
                 delete[] PACKET.BODY.data;
 
             return;
         }
+
 
         // Header
         // Src
@@ -102,7 +117,16 @@ public:
 
         // Body
         // Data
-        PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
+        if (this->PACKET.BODY.data == nullptr)
+        {
+            PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
+        }
+        else
+        {
+            delete[] PACKET.BODY.data;
+            PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
+        }
+
         memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen);
         offset += PACKET.HEADER.bodyLen;
 
@@ -160,7 +184,7 @@ public:
     unsigned int getBodyLen() const { return PACKET.HEADER.bodyLen; }
 
     // Special getter and setter due to allocated memory
-    void setData(char* data, size_t bytes) {
+    void setData(const char* data, size_t bytes) {
 
         // Delete old data if it is not already nullptr
         if (PACKET.BODY.data) {
@@ -191,7 +215,7 @@ public:
     unsigned int getCrc() const { return PACKET.TAIL.crc; }
 
     // Serialize
-    int Serialize(unsigned uint8_t* outBuffer, int bufferSize){
+    int Serialize(char* outBuffer, int bufferSize){
 
         int bytesSerialized = 0;
         size_t offset = 0; // How far "over" we need to offset our memcpy by when serializing
@@ -261,3 +285,5 @@ public:
         cout << "CRC: " << PACKET.TAIL.crc << endl;
     }
 };
+
+#endif

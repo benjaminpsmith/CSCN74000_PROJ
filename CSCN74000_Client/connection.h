@@ -3,14 +3,16 @@
 
 #define CONN_PORT 34214
 
-#include <string.h>
-#include <iostream>
-#include <Windows.h>
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+#include <Windows.h>
+#include <string.h>
+#include <iostream>
 #include <cstdint>
 #include <string.h>
 #include "packet.h"
+
+#pragma comment(lib, "ws2_32")
 
 typedef struct sockaddr_in address;
 typedef const char* iPAddress;
@@ -51,3 +53,4 @@ public:
 	~Connection();
 };
 
+#endif

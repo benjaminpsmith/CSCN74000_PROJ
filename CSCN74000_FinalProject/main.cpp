@@ -1,9 +1,9 @@
 // Source file for main of the server
 #include "packet.h"
-#include "connection.hpp"
+#include "connection.h"
 
 #define SERVER_IP "192.168.1.50"
-#define SERVER_PORT = 34254;
+#define SERVER_PORT 34254
 
 int main(void){
 
@@ -12,29 +12,37 @@ int main(void){
     Packet received;
     Packet toSend;
     bool shutdown;
-    uint8_t recvBuffer[MAX_PACKET_LENGTH];
+    char recvBuffer[MAX_PACKET_LENGTH];
     address rxSender;
-    int rxLength;
+    int addrLength;
+    int bytesRead;
+
 
     shutdown = false;
-    rxLength = 0;
+    bytesRead = 0;
+
     //set the connection details and creat the socket
     connectionDetails.socket = flightConnection.createSocket();
     connectionDetails.addr = flightConnection.createAddress(SERVER_IP, SERVER_PORT);
-    flightConnection.setConnectionDetails(&connectionDetails.socket, (struct sockaddr*)&connectionDetails.addr);
+    flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
 
     while (!shutdown)
     {
         while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
         {
-            recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, &rxSender, &rxLength);
+            bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*) & rxSender, &addrLength);
             
-            received = Packet(recvBuffer, rxLength);
-            flightConnection.accept(received, rxSender);
+            received = Packet(recvBuffer, bytesRead);
+            flightConnection.accept(received, &rxSender);
+
+            if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
+            {
+                Sleep(1);
+            }
         }
         
-        recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, &rxSender, &rxLength);
-        received = Packet(recvBuffer, rxLength);
+        bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+        received = Packet(recvBuffer, bytesRead);
 
         if (received.getFlag() == Packet::Flag::BB)
         {
@@ -46,6 +54,10 @@ int main(void){
             //receiving request for an image to send
         }
 
+        if (bytesRead <= 0)
+        {
+            Sleep(1);
+        }
     }
 
     return 1;

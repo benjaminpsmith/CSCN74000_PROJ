@@ -1,15 +1,23 @@
-#include "connection.hpp"
+#include "connection.h"
 
 Connection::Connection()
 {
-	memset(this->buffer, )
+	WORD version = MAKEWORD(2, 2);
+	int err = WSAStartup(version, &wsaData);
+
+	this->connectionDetails.socket = 0;
+	this->passphrase = nullptr;
+	memset(&this->wsaData, 0, sizeof(wsaData));
+
 }
 
 fd Connection::createSocket()
 {
-	fd createdSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (!createdSocket)
+	fd createdSocket = socket(AF_INET, SOCK_DGRAM, 0);
+	if (createdSocket < 0)
 	{
+		int err = WSAGetLastError();
+		perror("Error creating socket. ");
 		WSACleanup();
 	}
 	return createdSocket;
@@ -21,7 +29,7 @@ address Connection::createAddress(iPAddress ip, port portNum)
 
 	connectionAddress.sin_family = AF_INET;
 	connectionAddress.sin_port = htons(portNum);
-	inet_pton(AF_INET, ip, connectionAddress);
+	inet_pton(AF_INET, ip, &connectionAddress);
 
 	return connectionAddress;
 }
@@ -32,7 +40,7 @@ int Connection::establishConnection(Packet& handshakePacket, address* targetAddr
 	uint8_t flags;
 	int authBit;
 	int ackBit;
-	uint8_t buffer[MAX_PACKET_LENGTH];
+	char buffer[MAX_PACKET_LENGTH];
 
 	ret = 0;
 	flags = handshakePacket.getFlag();
@@ -47,7 +55,7 @@ int Connection::establishConnection(Packet& handshakePacket, address* targetAddr
 
 		if (ret)
 		{
-			ret = ::sendto(connectionDetails.socket, buffer, stream.size(), IPPROTO_UDP, (const sockaddr* )targetAddress, ret);
+			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
 		}
 		state = ConnState::HANDSHAKING;
 	}
@@ -59,7 +67,7 @@ int Connection::establishConnection(Packet& handshakePacket, address* targetAddr
 
 		if (ret)
 		{
-			ret = ::sendto(connectionDetails.socket, buffer, stream.size(), IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
+			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
 		}
 		state = ConnState::AUTHENTICATED;
 	}
@@ -101,12 +109,12 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 	int ackBit;
 	char* passwordData;
 
-	uint8_t buffer[MAX_PACKET_LENGTH];
-	
+	char buffer[MAX_PACKET_LENGTH];
+
 	passwordData = nullptr;
 	ret = 0;
 	flags = handshakePacket.getFlag();
-	
+
 	authBit = flags & 0x8;
 	ackBit = flags & 0x10;
 
@@ -118,7 +126,7 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 
 		if (passwordData != nullptr)
 		{
-			ret = strncmp(passwordData, this->passphrase);
+			ret = strncmp(passwordData, this->passphrase, handshakePacket.getBodyLen());
 		}
 
 		if (!ret)
@@ -129,11 +137,11 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 
 			if (ret)
 			{
-				ret = ::sendto(connectionDetails.socket, buffer, stream.size(), IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
+				ret = ::sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
 			}
 			state = ConnState::HANDSHAKING;
 		}
-		
+
 	}
 
 	if (state == ConnState::HANDSHAKING && ackBit && !authBit)
@@ -149,12 +157,12 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 
 		if (ret)
 		{
-			ret = ::sendto(connectionDetails.socket, buffer, stream.size(), IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
+			ret = ::sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
 		}
 
 		ret = 1;
 	}
-	
+
 	return ret;
 }
 

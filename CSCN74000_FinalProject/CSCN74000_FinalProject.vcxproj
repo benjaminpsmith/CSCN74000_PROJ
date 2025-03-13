@@ -133,8 +133,8 @@
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="blackbox.hpp" />
-    <ClInclude Include="connection.hpp" />
+    <ClInclude Include="blackbox.h" />
+    <ClInclude Include="connection.h" />
     <ClInclude Include="packet.h" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
