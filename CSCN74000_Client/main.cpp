@@ -34,7 +34,7 @@ int main(void) {
     beginsHandshake.setSrc(AIRPLANE_ID);
     beginsHandshake.setTotalCount(1);
 
-    //set up an interrupt timer to set a global that we can use to determine if a second has elapsed
+    //set up timer to set variable we can use to determine if a second has elapsed
    
     timerThread = std::thread([&] {
         Sleep(500);
