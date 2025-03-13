@@ -55,7 +55,7 @@ int Connection::establishConnection(Packet& handshakePacket, address* targetAddr
 
 		if (ret)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
+			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
 		state = ConnState::HANDSHAKING;
 	}
@@ -67,7 +67,7 @@ int Connection::establishConnection(Packet& handshakePacket, address* targetAddr
 
 		if (ret)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
+			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
 		state = ConnState::AUTHENTICATED;
 	}
@@ -139,7 +139,7 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 
 			if (ret)
 			{
-				ret = ::sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
+				ret = ::sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 			}
 			state = ConnState::HANDSHAKING;
 		}
@@ -159,7 +159,7 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 
 		if (ret)
 		{
-			ret = ::sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, ret);
+			ret = ::sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
 
 		ret = 1;
