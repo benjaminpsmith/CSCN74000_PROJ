@@ -53,8 +53,8 @@ int main(void){
             // Convert the body into a string
 			std::string data(received.getData(), received.getBodyLen());
 			Position pos(data);
-			std::string filename = to_string(received.getSrc()) + "blackbox.csv";
-			pos.writeToFile("blackbox.csv");
+			std::string filename = to_string(received.getSrc()) + "_blackbox.csv";
+			pos.writeToFile(filename);
         }
 
         if (received.getFlag() == PacketDef::Flag::IMG)

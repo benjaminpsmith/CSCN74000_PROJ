@@ -2,6 +2,7 @@
 #include "..\CSCN74000_FinalProject\packet.h"
 #include "..\CSCN74000_FinalProject\connection.h"
 #include "..\CSCN74000_FinalProject\blackbox.h"
+#include "..\CSCN74000_FinalProject\position.h"
 #include <thread>
 
 int main(void) {
@@ -80,8 +81,20 @@ int main(void) {
 
             if (received.getFlag() == PacketDef::Flag::BB)  // The server has requested the client to send the black-box data
             {
-				// We will now send the black-box data
-				send(connectionDetails.socket, toSend.Serialize(), toSend.getPacketSize(), NULL);
+                Position pos;  
+				pos.createRandomValues();                       // Create the fake position data
+				std::string data = pos.createStringToSend();    // Convert the position data to a string
+
+				toSend.setData(data.c_str(), data.length());    // Set the body and body length of the new packet
+				if (toSend.getData() == nullptr)
+				{
+					std::cout << "Error setting data, size too large or error allocating memory." << std::endl;
+                    // Throw error?
+				}
+                char* buffer = nullptr;
+                unsigned int totalSize = toSend.Serialize(buffer, MAX_PACKET_LENGTH);
+                if(buffer != nullptr)
+				    send(connectionDetails.socket, buffer, totalSize, NULL); // Send the packet
             }
 
 			if (received.getFlag() == PacketDef::Flag::IMG) // The client has previously requested an image, and it is now being delivered.
