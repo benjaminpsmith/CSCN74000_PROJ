@@ -21,6 +21,7 @@ int main(void) {
     secondElapsed = false;
     shutdown = false;
     bytesRead = 0;
+    addrLength = 0;
 
     //set the connection details and creat the socket
     connectionDetails.socket = flightConnection.createSocket();
