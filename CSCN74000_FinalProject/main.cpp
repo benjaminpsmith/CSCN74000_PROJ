@@ -2,7 +2,7 @@
 #include "packet.h"
 #include "connection.h"
 
-#define SERVER_IP "192.168.1.50"
+#define SERVER_IP "10.144.98.141"
 #define SERVER_PORT 34254
 
 int main(void){

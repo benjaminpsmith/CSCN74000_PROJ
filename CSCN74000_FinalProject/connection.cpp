@@ -29,7 +29,7 @@ address Connection::createAddress(iPAddress ip, port portNum)
 
 	connectionAddress.sin_family = AF_INET;
 	connectionAddress.sin_port = htons(portNum);
-	inet_pton(AF_INET, ip, &connectionAddress);
+	connectionAddress.sin_addr.s_addr = INADDR_ANY;
 
 	return connectionAddress;
 }
@@ -98,7 +98,7 @@ ConnState Connection::getAuthenticationState()
 
 int Connection::bindTo(fd* socketFd, address* targetAddress)
 {
-	if (bind((SOCKET)socketFd, (struct sockaddr*)targetAddress, sizeof(sockaddr)) < 0)
+	if (bind(*socketFd, (struct sockaddr*)targetAddress, sizeof(sockaddr)) < 0)
 	{
 		int err = WSAGetLastError();
 		perror("Error binding socket.\n");
