@@ -1,41 +1,49 @@
+#ifndef HPP_PACKET
+#define HPP_PACKET
+
 #include <cstdint>
 #include <cstring>
 #include <iostream>
 using namespace std;
 
 const unsigned int MAX_BODY_LENGTH = 256;
+const unsigned int MAX_HEADER_LENGTH = 21;
+const unsigned int MIN_PACKET_LENGTH = MAX_HEADER_LENGTH;
+
+const unsigned int MAX_PACKET_LENGTH = MAX_BODY_LENGTH + MAX_HEADER_LENGTH;
 
 class Packet
 {
 public:
-    enum class Flag{
+    enum Flag : uint8_t {
         EMPTY = 0,
         BB = 1,
         IMG = 2,
         AUTH = 3,
-        ACK = 4
+        ACK = 4,
+        AUTH_ACK = 12,
     };
 
 private:
 
-    struct packet{
+    struct packet {
 
-        struct header{
+        struct header {
             // Uses ICAO Aircraft Address for IDs as the client (plane) (24-bit hexadecimal) e.g. A0B1C2 - Ignore last byte (8 bits)
             // Use random 3 bytes for server address
             uint32_t src;   // liable to change
-            uint32_t dest;  
+            uint32_t dest;
             Flag flag;
             unsigned int seqNum;
             unsigned int totalCount;
             unsigned int bodyLen;
         }HEADER;
 
-        struct body{
+        struct body {
             char* data;
         }BODY;
 
-        struct tail{
+        struct tail {
             unsigned int crc;
         }TAIL;
     }PACKET;
@@ -44,24 +52,43 @@ private:
 
 public:
     // Constructor and Destructor
-    Packet(){
+    Packet() {
 
         PACKET.HEADER.src = '0';    // default src/dest?
-		PACKET.HEADER.dest = '0';   // default src/dest?
-		PACKET.HEADER.flag = Flag::EMPTY;
+        PACKET.HEADER.dest = '0';   // default src/dest?
+        PACKET.HEADER.flag = Flag::EMPTY;
         PACKET.HEADER.seqNum = 0;
         PACKET.HEADER.totalCount = 0;
-		PACKET.HEADER.bodyLen = 0;
+        PACKET.HEADER.bodyLen = 0;
 
-		PACKET.BODY.data = nullptr;
+        PACKET.BODY.data = nullptr;
 
-		PACKET.TAIL.crc = 0;
+        PACKET.TAIL.crc = 0;
 
-		outBuffer = nullptr;
     }
-    Packet(const char* rawData){ // This is the "deserialize" function
+    Packet(const char* rawData, int length) { // This is the "deserialize" function
 
         size_t offset = 0;
+
+        PACKET.HEADER.src = '0';    // default src/dest?
+        PACKET.HEADER.dest = '0';   // default src/dest?
+        PACKET.HEADER.flag = Flag::EMPTY;
+        PACKET.HEADER.seqNum = 0;
+        PACKET.HEADER.totalCount = 0;
+        PACKET.HEADER.bodyLen = 0;
+
+        PACKET.BODY.data = nullptr;
+
+        PACKET.TAIL.crc = 0;
+
+        if (length < MIN_PACKET_LENGTH || length <= 0)
+        {
+            if (PACKET.BODY.data != nullptr)
+                delete[] PACKET.BODY.data;
+
+            return;
+        }
+
 
         // Header
         // Src
@@ -90,44 +117,51 @@ public:
 
         // Body
         // Data
-        PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
+        if (this->PACKET.BODY.data == nullptr)
+        {
+            PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
+        }
+        else
+        {
+            delete[] PACKET.BODY.data;
+            PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
+        }
+
         memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen);
         offset += PACKET.HEADER.bodyLen;
 
         // Tail
         // CRC
         memcpy(&PACKET.TAIL.crc, rawData + offset, sizeof(PACKET.TAIL.crc));
-
-        outBuffer = nullptr;
     }
-    Packet(const Packet &srcPkt){ // Copy constructor
+    Packet(const Packet& srcPkt) { // Copy constructor
         // Header
         this->PACKET.HEADER.src = srcPkt.PACKET.HEADER.src;
-		this->PACKET.HEADER.dest = srcPkt.PACKET.HEADER.dest;
-		this->PACKET.HEADER.seqNum = srcPkt.PACKET.HEADER.seqNum;
-		this->PACKET.HEADER.flag = srcPkt.PACKET.HEADER.flag;
-		this->PACKET.HEADER.bodyLen = srcPkt.PACKET.HEADER.bodyLen;
-		
-		// Body
-		if (srcPkt.PACKET.HEADER.bodyLen > 0) {
-			this->PACKET.BODY.data = new char[srcPkt.PACKET.HEADER.bodyLen];
-			memcpy(this->PACKET.BODY.data, srcPkt.PACKET.BODY.data, srcPkt.PACKET.HEADER.bodyLen);
-		}
-		else {
-			this->PACKET.BODY.data = nullptr;
-		}
+        this->PACKET.HEADER.dest = srcPkt.PACKET.HEADER.dest;
+        this->PACKET.HEADER.seqNum = srcPkt.PACKET.HEADER.seqNum;
+        this->PACKET.HEADER.flag = srcPkt.PACKET.HEADER.flag;
+        this->PACKET.HEADER.bodyLen = srcPkt.PACKET.HEADER.bodyLen;
 
-		// Tail
-		this->PACKET.TAIL.crc = srcPkt.PACKET.TAIL.crc;
+        // Body
+        if (srcPkt.PACKET.HEADER.bodyLen > 0) {
+            this->PACKET.BODY.data = new char[srcPkt.PACKET.HEADER.bodyLen];
+            memcpy(this->PACKET.BODY.data, srcPkt.PACKET.BODY.data, srcPkt.PACKET.HEADER.bodyLen);
+        }
+        else {
+            this->PACKET.BODY.data = nullptr;
+        }
 
-		// 
-		this->outBuffer = srcPkt.outBuffer;
+        // Tail
+        this->PACKET.TAIL.crc = srcPkt.PACKET.TAIL.crc;
+
     }
-    ~Packet(){
+    Packet(int preAllocationBytes)
+    {
+        this->PACKET.BODY.data = new char[preAllocationBytes];
+    }
+    ~Packet() {
         if (PACKET.BODY.data)
             delete[]PACKET.BODY.data;
-        if (outBuffer)
-            delete[]outBuffer;
     }
 
     // Setters and Getters
@@ -150,29 +184,29 @@ public:
     unsigned int getBodyLen() const { return PACKET.HEADER.bodyLen; }
 
     // Special getter and setter due to allocated memory
-    void setData(char* data, size_t bytes) {
+    void setData(const char* data, size_t bytes) {
 
         // Delete old data if it is not already nullptr
         if (PACKET.BODY.data) {
-			delete[]PACKET.BODY.data;
-			PACKET.BODY.data = nullptr;
-		}
+            delete[]PACKET.BODY.data;
+            PACKET.BODY.data = nullptr;
+        }
 
-        if(bytes > MAX_BODY_LENGTH){
+        if (bytes > MAX_BODY_LENGTH) {
             return;
         }
 
         // If no data, set body length to 0
-		if (bytes <= 0) {
-			PACKET.HEADER.bodyLen = 0;
-			return;
-		}
+        if (bytes <= 0) {
+            PACKET.HEADER.bodyLen = 0;
+            return;
+        }
 
         // Allocate memory for new data
-		PACKET.BODY.data = new char[bytes];
-		memcpy(PACKET.BODY.data, data, bytes);
+        PACKET.BODY.data = new char[bytes];
+        memcpy(PACKET.BODY.data, data, bytes);
 
-		PACKET.HEADER.bodyLen = (unsigned int)bytes;
+        PACKET.HEADER.bodyLen = (unsigned int)bytes;
     }
     char* getData() const { return PACKET.BODY.data; }
 
@@ -181,23 +215,20 @@ public:
     unsigned int getCrc() const { return PACKET.TAIL.crc; }
 
     // Serialize
-    const char* Serialize(unsigned int* bytes){
+    int Serialize(char* outBuffer, int bufferSize) {
 
-        if (!bytes) return nullptr;
-
+        int bytesSerialized = 0;
         size_t offset = 0; // How far "over" we need to offset our memcpy by when serializing
 
         // Calculate the size of the entire packet
-        *bytes = sizeof(PACKET.HEADER.src) + sizeof(PACKET.HEADER.dest) + sizeof(PACKET.HEADER.flag) + sizeof(PACKET.HEADER.seqNum) + sizeof(PACKET.HEADER.totalCount) + sizeof(PACKET.HEADER.bodyLen) +
-                    PACKET.HEADER.bodyLen + 
-                    sizeof(PACKET.TAIL.crc);
-        
-        // Delete the data in outBuffer if it is not already empty/nullptr
-        if(outBuffer)
-            delete[]outBuffer;
+        int packetSize = sizeof(PACKET.HEADER.src) + sizeof(PACKET.HEADER.dest) + sizeof(PACKET.HEADER.flag) + sizeof(PACKET.HEADER.seqNum) + sizeof(PACKET.HEADER.totalCount) + sizeof(PACKET.HEADER.bodyLen) +
+            PACKET.HEADER.bodyLen +
+            sizeof(PACKET.TAIL.crc);
 
-        outBuffer = new char[*bytes];
-        memset(outBuffer, 0, *bytes);
+        if (packetSize > bufferSize)
+            return 0;
+
+        memset(outBuffer, 0, bufferSize);
 
         // Packet Header
         // Src
@@ -227,7 +258,7 @@ public:
         memcpy(outBuffer + offset, &PACKET.TAIL.crc, sizeof(PACKET.TAIL.crc));
         offset += sizeof(PACKET.TAIL.crc);
 
-        return outBuffer;
+        return packetSize;
     }
 
     // Extra Functions
@@ -240,17 +271,20 @@ public:
         cout << "Sequence Number: " << PACKET.HEADER.seqNum << endl;
         cout << "Total Count: " << PACKET.HEADER.totalCount << endl;
         cout << "Body Length: " << PACKET.HEADER.bodyLen << endl;
-    
+
         cout << "Data: ";
         if (PACKET.BODY.data && PACKET.HEADER.bodyLen > 0) {
             for (unsigned int i = 0; i < PACKET.HEADER.bodyLen; ++i) {
                 cout << PACKET.BODY.data[i];
             }
-        } else {
+        }
+        else {
             cout << "(empty)";
         }
         cout << endl;
-    
+
         cout << "CRC: " << PACKET.TAIL.crc << endl;
     }
 };
+
+#endif

@@ -2,3 +2,7 @@
 server.exe
 .gitignore
 .vscode/tasks.json
+/.vs
+/CSCN74000_Client/x64/Debug
+/CSCN74000_FinalProject/x64/Debug
+/x64/Debug
