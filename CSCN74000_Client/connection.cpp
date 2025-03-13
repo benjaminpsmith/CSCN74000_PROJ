@@ -13,7 +13,7 @@ Connection::Connection()
 
 fd Connection::createSocket()
 {
-	fd createdSocket = socket(AF_INET, SOCK_DGRAM, 0);
+	fd createdSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
 	if (createdSocket < 0)
 	{
 		int err = WSAGetLastError();
@@ -96,6 +96,11 @@ ConnState Connection::getAuthenticationState()
 	return this->state;
 }
 
+void Connection::setPassphrase(const char* passphrase)
+{
+	this->passphrase = passphrase;
+}
+
 int Connection::bindTo(fd* socketFd, address* targetAddress)
 {
 	if (bind(*socketFd, (struct sockaddr*)targetAddress, sizeof(sockaddr)) < 0)
@@ -114,11 +119,11 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 	uint8_t flags;
 	int authBit;
 	int ackBit;
-	char* passwordData;
+	char* authData;
 
 	char buffer[MAX_PACKET_LENGTH];
 
-	passwordData = nullptr;
+	authData = nullptr;
 	ret = 0;
 	authBit = 0;
 	ackBit = 0;
@@ -131,11 +136,11 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 	{
 		//extract the password and compare it to the correct one
 
-		passwordData = handshakePacket.getData();
+		authData = handshakePacket.getData();
 
-		if (passwordData != nullptr)
+		if (authData != nullptr)
 		{
-			ret = strncmp(passwordData, this->passphrase, handshakePacket.getBodyLen());
+			ret = strncmp(authData, this->passphrase, handshakePacket.getBodyLen());
 		}
 
 		if (!ret)
@@ -146,7 +151,7 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 
 			if (ret)
 			{
-				ret = ::sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
+				ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 			}
 			state = ConnState::HANDSHAKING;
 		}
@@ -166,7 +171,7 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 
 		if (ret)
 		{
-			ret = ::sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
+			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
 
 		ret = 1;

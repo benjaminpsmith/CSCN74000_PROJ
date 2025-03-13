@@ -2,6 +2,14 @@
 #define CONNECTION_HPP
 
 #define CONN_PORT 34214
+#define SERVER_IP "10.144.98.141"
+#define SERVER_PORT 34254
+#define SECURE_PASSWORD "lkjsdHJBFf987(*&%^bjsfy_SDGk187%^&$"
+
+#define SERVER_ID 723764
+#define AIRPLANE_ID 22367
+#define AIRPLANE_ID_LEN 5
+#define AUTHTRANSMISSION "22367" SECURE_PASSWORD
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
@@ -35,7 +43,7 @@ class Connection {
 private:
 	WSADATA wsaData;
 	ConnState state;
-	char* passphrase;
+	const char* passphrase;
 	ConnDetails connectionDetails;
 
 public:
@@ -49,6 +57,7 @@ public:
 	void setConnectionDetails(fd* socketFd, address* targetAddress);
 	bool isAuthenticated();
 	ConnState getAuthenticationState();
+	void setPassphrase(const char* passphrase);
 
 	~Connection();
 };

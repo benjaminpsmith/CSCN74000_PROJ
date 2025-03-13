@@ -25,6 +25,7 @@ int main(void){
     connectionDetails.socket = flightConnection.createSocket();
     connectionDetails.addr = flightConnection.createAddress(SERVER_IP, SERVER_PORT);
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
+    flightConnection.setPassphrase(SECURE_PASSWORD);
 
     flightConnection.bindTo(&connectionDetails.socket, &connectionDetails.addr);
 

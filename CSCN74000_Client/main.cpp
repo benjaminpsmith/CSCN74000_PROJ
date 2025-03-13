@@ -3,12 +3,6 @@
 #include "connection.h"
 #include <thread>
 
-#define SERVER_IP "10.144.98.141"
-#define SERVER_PORT 34254
-#define SECURE_PASSWORD "lkjsdHJBFf987(*&%^bjsfy_SDGk187%^&$"
-#define SERVER_ID 723764
-#define AIRPLANE_ID 22367
-
 int main(void) {
 
     ConnDetails connectionDetails;
@@ -32,8 +26,8 @@ int main(void) {
     connectionDetails.socket = flightConnection.createSocket();
     connectionDetails.addr = flightConnection.createAddress(SERVER_IP, SERVER_PORT);
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
+    flightConnection.setPassphrase(SECURE_PASSWORD);
 
-    beginsHandshake.setFlag(Packet::AUTH);
     beginsHandshake.setData(SECURE_PASSWORD, strlen(SECURE_PASSWORD));
     beginsHandshake.setDest(SERVER_ID);
     beginsHandshake.setSeqNum(0);
