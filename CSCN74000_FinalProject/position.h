@@ -1,21 +1,30 @@
 #include <fstream>
 #include <string>
+#include <sstream>
 #include <random>
 
 class Position {
 private:
-    double latitude;
-    double longitude;
-    double heading;
-    double velocity; // Knots
-    double altitude;
+    static constexpr unsigned int ATTRIBUTE_COUNT = 5;
+    double latitude = 0.0;
+    double longitude = 0.0;
+    double heading = 0.0;
+    double velocity = 0.0; // Knots
+    double altitude = 0.0; // Metres
 
 public:
     // Constructors
-	Position() : latitude(0), longitude(0), heading(0), velocity(0), altitude(0) {
-    }
+    Position() = default;
     Position(double lat, double lon, double hdg, double vel, double alt)
         : latitude(lat), longitude(lon), heading(hdg), velocity(vel), altitude(alt) {
+    }
+    Position(const std::string& csvData) {
+        int parsed = sscanf(csvData.c_str(), "%lf,%lf,%lf,%lf,%lf",
+            &latitude, &longitude, &heading, &velocity, &altitude);
+
+        if (parsed != ATTRIBUTE_COUNT) {
+            latitude = longitude = heading = velocity = altitude = 0.0;
+        }
     }
 
     // Getters and Setters
@@ -31,10 +40,10 @@ public:
     void setAltitude(double alt) { altitude = alt; }
 
     // File IO Functions
-	bool writeToFile(std::string filePath) {
+    bool writeToFile(std::string filePath) {
 
-		std::ofstream file;
-		file.open(filePath, std::ios::app);
+        std::ofstream file;
+        file.open(filePath, std::ios::app);
         if (file.is_open()) {
             file << latitude << "," << longitude << "," << heading << "," << velocity << "," << altitude << std::endl;
             file.close();
@@ -43,10 +52,10 @@ public:
         else {
             return false;
         }
-	}
+    }
 
     // Create Random Values
-	void createRandomValues() {
+    void createRandomValues() {
         std::random_device rd;
         std::mt19937 gen(rd());
 
@@ -54,12 +63,17 @@ public:
         std::uniform_real_distribution<double> lon(-180.0, 180.0);
         std::uniform_real_distribution<double> head(0.0, 360.0);
         std::uniform_real_distribution<double> vel(250.0, 600.0);
-        std::uniform_real_distribution<double> alt(0.0, 1000.0);
+        std::uniform_real_distribution<double> alt(1000.0, 10000.0);
 
         latitude = lat(gen);
         longitude = lon(gen);
         heading = head(gen);
         velocity = vel(gen);
         altitude = alt(gen);
-	}
+    }
+
+    // Create a string that we can used to build a packet body and send.
+    std::string createStringToSend() {
+        return std::to_string(latitude) + "," + std::to_string(longitude) + "," + std::to_string(heading) + "," + std::to_string(velocity) + "," + std::to_string(altitude);
+    }
 };

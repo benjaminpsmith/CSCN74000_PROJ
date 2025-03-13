@@ -30,8 +30,7 @@ private:
 
         struct header{
             // Uses ICAO Aircraft Address for IDs as the client (plane) (24-bit hexadecimal) e.g. A0B1C2 - Ignore last byte (8 bits)
-            // Use random 3 bytes for server address
-            uint32_t src;   // liable to change
+            uint32_t src;
             uint32_t dest;  
             Flag flag;
             unsigned int seqNum;

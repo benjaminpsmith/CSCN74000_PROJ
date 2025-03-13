@@ -1,6 +1,7 @@
 // Source file for main of the server
 #include "packet.h"
 #include "connection.h"
+#include "position.h"
 
 #define SERVER_IP "10.144.98.141"
 #define SERVER_PORT 34254
@@ -47,14 +48,19 @@ int main(void){
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
         received = PacketDef(recvBuffer, bytesRead);
 
-        if (received.getFlag() == PacketDef::Flag::BB)
+        if (received.getFlag() == PacketDef::Flag::BB)  // We are now receiving the black-box data from the client
         {
-            //receiving telemetry from the plane to record
+            // Convert the body into a string
+			std::string data(received.getData(), received.getBodyLen());
+			Position pos(data);
+			std::string filename = to_string(received.getSrc()) + "blackbox.csv";
+			pos.writeToFile("blackbox.csv");
         }
 
         if (received.getFlag() == PacketDef::Flag::IMG)
         {
             //receiving request for an image to send
+
         }
 
         if (bytesRead <= 0)
