@@ -113,6 +113,8 @@ int Connection::accept(Packet& handshakePacket, address* targetAddress)
 
 	passwordData = nullptr;
 	ret = 0;
+	authBit = 0;
+	ackBit = 0;
 	flags = handshakePacket.getFlag();
 
 	authBit = flags & 0x8;
