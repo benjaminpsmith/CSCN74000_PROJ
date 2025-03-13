@@ -6,11 +6,11 @@
 #include <iostream>
 using namespace std;
 
-const unsigned int MAX_BODY_LENGTH = 256;
 const unsigned int MAX_HEADER_LENGTH = 21;
-const unsigned int MIN_PACKET_LENGTH = MAX_HEADER_LENGTH;
-
-const unsigned int MAX_PACKET_LENGTH = MAX_BODY_LENGTH + MAX_HEADER_LENGTH;
+const unsigned int MAX_BODY_LENGTH = 256;
+const unsigned int MAX_TAIL_LENGTH = 4;
+const unsigned int MIN_PACKET_LENGTH = MAX_HEADER_LENGTH + MAX_TAIL_LENGTH;
+const unsigned int MAX_PACKET_LENGTH = MAX_HEADER_LENGTH + MAX_BODY_LENGTH + MAX_TAIL_LENGTH;
 
 class PacketDef
 {
