@@ -51,7 +51,7 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 	if (state == ConnState::UNAUTHENTICATED && !authBit)
 	{
 		handshakePacket.setFlag(PacketDef::Flag::AUTH);
-		ret = handshakePacket.Serialize(buffer, MAX_PACKET_LENGTH);
+		ret = handshakePacket.Serialize(buffer);
 
 		if (ret)
 		{
@@ -63,7 +63,7 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 	if (state == ConnState::HANDSHAKING && authBit && ackBit)
 	{
 		handshakePacket.setFlag(PacketDef::Flag::ACK);
-		ret = handshakePacket.Serialize(buffer, MAX_PACKET_LENGTH);
+		ret = handshakePacket.Serialize(buffer);
 
 		if (ret)
 		{
@@ -147,7 +147,7 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 		{
 			//send AUTH + ACK
 			handshakePacket.setFlag(PacketDef::Flag::AUTH_ACK);
-			ret = handshakePacket.Serialize(buffer, MAX_PACKET_LENGTH);
+			ret = handshakePacket.Serialize(buffer);
 
 			if (ret)
 			{
@@ -167,7 +167,7 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 	{
 		//send ACK
 		handshakePacket.setFlag(PacketDef::Flag::ACK);
-		ret = handshakePacket.Serialize(buffer, MAX_PACKET_LENGTH);
+		ret = handshakePacket.Serialize(buffer);
 
 		if (ret)
 		{

@@ -6,6 +6,8 @@
 #define SERVER_IP "10.144.98.141"
 #define SERVER_PORT 34254
 
+#define BLACKBOX_FILE "_blackbox.csv"
+
 int main(void){
 
     ConnDetails connectionDetails;
@@ -46,15 +48,28 @@ int main(void){
         }
         
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
-        received = PacketDef(recvBuffer, bytesRead);
+        received = PacketDef(recvBuffer, bytesRead);    //RECV BB DATA
 
         if (received.getFlag() == PacketDef::Flag::BB)  // We are now receiving the black-box data from the client
         {
-            // Convert the body into a string
-			std::string data(received.getData(), received.getBodyLen());
-			Position pos(data);
-			std::string filename = to_string(received.getSrc()) + "_blackbox.csv";
-			pos.writeToFile(filename);
+			std::string data(received.getData(), received.getBodyLen());    // Convert the body into a string
+			Position pos(data);	                                            // Create a position object from the string     
+			std::string filename = to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
+			pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
+
+			// Send an ACK back to the client -  could potentially make one ahead of time and use it repeatedly since the body is empty, would only need to change dest?
+			toSend.setSrc(SERVER_ID);
+			toSend.setDest(received.getSrc());
+			toSend.setFlag(PacketDef::Flag::ACK);
+            toSend.setSeqNum(1);
+			toSend.setTotalCount(1);
+			toSend.setBodyLen(0);
+			toSend.setData(nullptr, 0);
+			toSend.setCrc(0);
+
+			char sendBuffer[MAX_PACKET_LENGTH];
+			int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
+			sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
         }
 
         if (received.getFlag() == PacketDef::Flag::IMG)

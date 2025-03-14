@@ -218,7 +218,7 @@ public:
     unsigned int getCrc() const { return PACKET.TAIL.crc; }
 
     // Serialize
-    int Serialize(char* outBuffer, int bufferSize){
+    int Serialize(char* outBuffer){
 
         int bytesSerialized = 0;
         size_t offset = 0; // How far "over" we need to offset our memcpy by when serializing
@@ -228,10 +228,10 @@ public:
                     PACKET.HEADER.bodyLen + 
                     sizeof(PACKET.TAIL.crc);
 
-        if (packetSize > bufferSize)
+        if (packetSize > MAX_PACKET_LENGTH)
             return 0;
 
-        memset(outBuffer, 0, bufferSize);
+        memset(outBuffer, 0, MAX_PACKET_LENGTH);
 
         // Packet Header
         // Src

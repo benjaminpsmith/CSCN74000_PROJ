@@ -72,6 +72,7 @@ int main(void) {
             }
         }
 
+        // Final ACK?
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
 
         if (bytesRead > 0)
@@ -92,15 +93,27 @@ int main(void) {
                     // Throw error?
 				}
                 char* buffer = nullptr;
-                unsigned int totalSize = toSend.Serialize(buffer, MAX_PACKET_LENGTH);
+                unsigned int totalSize = toSend.Serialize(buffer);
                 if(buffer != nullptr)
 				    send(connectionDetails.socket, buffer, totalSize, NULL); // Send the packet
+
+                // Check for ACK
+				bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+				received = PacketDef(recvBuffer, bytesRead);
+                if (received.getFlag() != PacketDef::Flag::ACK)
+                {
+                    // Error and no ACK returned
+                }
             }
 
 			if (received.getFlag() == PacketDef::Flag::IMG) // The client has previously requested an image, and it is now being delivered.
 			{
 				// We need to store all the packets that will be used to reconstruct the image
 			}
+        }
+
+        if (secondElapsed > 1) {
+            // something?
         }
 
         if (bytesRead <= 0)
