@@ -17,11 +17,11 @@ class PacketDef
 public:
     enum Flag : uint8_t{
         EMPTY = 0,
-        BB = 1,
-        IMG = 2,
-        AUTH = 3,
-        ACK = 4,
-        AUTH_ACK = 12,
+        BB = 1,//000001
+        IMG = 2,//000010
+        AUTH = 4,//000100
+        ACK = 8,//001000
+        AUTH_ACK = 12,//001100
     };
 
 private:
@@ -128,6 +128,7 @@ public:
             delete[] PACKET.BODY.data;
             PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
         }
+        memset(PACKET.BODY.data, 0, PACKET.HEADER.bodyLen);
 
         memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen);
         offset += PACKET.HEADER.bodyLen;
@@ -287,6 +288,27 @@ public:
         cout << endl;
     
         cout << "CRC: " << PACKET.TAIL.crc << endl;
+    }
+
+    PacketDef& operator=(const PacketDef& other)
+    {
+        int bodyLen = 0;
+
+        memcpy(&this->PACKET.HEADER, &other.PACKET.HEADER, sizeof(this->PACKET.HEADER));
+        if (this->PACKET.BODY.data != nullptr)
+        {
+            bodyLen = other.getBodyLen();
+            this->PACKET.BODY.data = new char[bodyLen];
+        }
+        else
+        {
+            this->PACKET.BODY.data = new char[bodyLen];
+        }
+        memcpy(this->PACKET.BODY.data, other.PACKET.BODY.data, this->PACKET.HEADER.bodyLen);
+
+        this->PACKET.TAIL.crc = other.PACKET.TAIL.crc;
+
+        return *this;
     }
 };
 

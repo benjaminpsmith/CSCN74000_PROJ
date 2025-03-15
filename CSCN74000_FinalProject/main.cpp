@@ -62,7 +62,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
 
     //set the connection details and creat the socket
     connectionDetails.socket = flightConnection.createSocket();
-    connectionDetails.addr = flightConnection.createAddress(SERVER_IP, serverPort);
+    connectionDetails.addr = flightConnection.createAddress(serverPort, SERVER_IP);
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
     flightConnection.setPassphrase(SECURE_PASSWORD);
 
@@ -91,11 +91,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
                 received = PacketDef(recvBuffer, bytesRead);
             }
 
-            if (firstHandshakePacket)
-            {
-                firstHandshakePacket = false;
-            }
-            
+            firstHandshakePacket = false;
             flightConnection.accept(received, &rxSender);
 
             if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
@@ -114,8 +110,8 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
         received = PacketDef(recvBuffer, bytesRead);    //RECV BB DATA
 
-
-        if (received.getFlag() == PacketDef::Flag::BB && state == ServerState::IDLE)  // We are now receiving the black-box data from the client
+        //If a BB packet is sent
+        if ((received.getFlag() & PacketDef::Flag::BB) == PacketDef::Flag::BB && state == ServerState::IDLE)  // We are now receiving the black-box data from the client
         {
             state = ServerState::RECEIVING;
             std::string data(received.getData(), received.getBodyLen());    // Convert the body into a string
@@ -138,9 +134,12 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
 
 
-        }
+            //LOG THE BB data
 
-        if (received.getFlag() == PacketDef::Flag::IMG && state == ServerState::IDLE)
+
+        }
+        //if the Image flag is set
+        if ((received.getFlag() & PacketDef::Flag::IMG) == PacketDef::Flag::IMG && state == ServerState::IDLE)
         {
             //receiving request for an image to send
 
@@ -174,7 +173,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             toSend.setCrc(0);
 
             char sendBuffer[MAX_PACKET_LENGTH];
-            int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
+            int bytesToSend = toSend.Serialize(sendBuffer); 
             sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
         }
 
@@ -189,7 +188,6 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             newServerThread = std::thread([&] {
 
                 serverThread(received, true, serverPort + 1);
-
                 });
 
             newServerThread.detach();

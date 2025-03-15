@@ -3,7 +3,7 @@
 #include "connection.h"
 #include "blackbox.h"
 #include "position.h"
-
+#include <thread>
 int sendBlackBoxData(PacketDef& toSend, PacketDef& received, struct ConnDetails* pConnDets, sockaddr* rxSender, int* addrLength, char* recvBuffer);
 
 
@@ -20,16 +20,35 @@ int main(void) {
     int bytesRead;
     PacketDef beginsHandshake;
     int err;
- 
+    std::thread timerThread;
+    bool secondElapsed;
 
+
+    secondElapsed = false;
     shutdown = false;
     bytesRead = 0;
     addrLength = 0;
     err = 0;
+    memset(&connectionDetails.addr, 0, sizeof(connectionDetails.addr));
+    memset(&rxSender, 0, sizeof(rxSender));
+
+
+    //set up timer to set variable we can use to determine if a second has elapsed
+
+    timerThread = std::thread([&] {
+        Sleep(500);
+        secondElapsed = true;
+        Sleep(500);
+        secondElapsed = false;
+        });
+
+
+    timerThread.detach();
+
     
     //set the connection details and creat the socket
     connectionDetails.socket = flightConnection.createSocket();
-    connectionDetails.addr = flightConnection.createAddress(SERVER_IP, SERVER_PORT);
+    connectionDetails.addr = flightConnection.createAddress(SERVER_PORT, SERVER_IP);
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
     flightConnection.setPassphrase(SECURE_PASSWORD);
 
@@ -40,7 +59,6 @@ int main(void) {
     beginsHandshake.setSeqNum(0);
     beginsHandshake.setSrc(AIRPLANE_ID);
     beginsHandshake.setTotalCount(1);
-
 
     while (!shutdown)
     {
@@ -72,7 +90,9 @@ int main(void) {
             }
         }
 
-        // Final ACK?
+        //every second a request for BB data comes in.
+
+        //every second the client requests and image from the server
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
 
         if (bytesRead > 0)
@@ -91,6 +111,26 @@ int main(void) {
 			{
 				// We need to store all the packets that will be used to reconstruct the image
 			}
+
+
+        }
+
+        if (secondElapsed)
+        {
+            //send request for bb data
+
+            toSend.setSrc(SERVER_ID);
+            toSend.setDest(received.getSrc());
+            toSend.setFlag(PacketDef::Flag::IMG);
+            toSend.setSeqNum(1);
+            toSend.setTotalCount(1);
+            toSend.setBodyLen(0);
+            toSend.setData(nullptr, 0);
+            toSend.setCrc(0);
+
+            char sendBuffer[MAX_PACKET_LENGTH];
+            int bytesToSend = toSend.Serialize(sendBuffer);
+            sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
         }
 
 

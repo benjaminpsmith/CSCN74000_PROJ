@@ -1,7 +1,9 @@
 
 #define CONN_PORT 34214
-#define SERVER_IP "10.144.112.216"
+#define SERVER_IP "127.0.0.1"
+#define CLIENT_IP "127.0.0.1"
 #define SERVER_PORT 34254
+#define CLIENT_PORT 44254
 #define SECURE_PASSWORD "lkjsdHJBFf987(*&%^bjsfy_SDGk187%^&$"
 
 #define SERVER_ID 723764
@@ -52,7 +54,7 @@ public:
 	fd createSocket();
 	int bindTo(fd* socketFd, address* targetAddress);
 	int accept(PacketDef& handshakePacket, address* targetAddress);
-	address createAddress(iPAddress ip, port portNum);
+	address createAddress(port portNum, iPAddress ip = nullptr);
 	int establishConnection(PacketDef& handshakePacket, address* targetAddress);
 	void setConnectionDetails(fd* socketFd, address* targetAddress);
 	bool isAuthenticated();
