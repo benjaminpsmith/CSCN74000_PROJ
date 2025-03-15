@@ -37,6 +37,7 @@ typedef enum CONNECTION_STATE : int8_t
 struct ConnDetails {
 	fd socket;
 	address addr;
+	char airplaneID[AIRPLANE_ID_LEN];
 };
 
 class Connection {

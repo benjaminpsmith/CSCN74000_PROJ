@@ -58,6 +58,7 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
 		state = ConnState::HANDSHAKING;
+		return 1;
 	}
 
 	if (state == ConnState::HANDSHAKING && authBit && ackBit)
@@ -70,6 +71,7 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
 		state = ConnState::AUTHENTICATED;
+		return 1;
 	}
 
 	if (state == ConnState::AUTHENTICATED && ackBit)
@@ -77,7 +79,7 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 		ret = -1;
 	}
 
-	return ret;
+	return 1;
 }
 
 void Connection::setConnectionDetails(fd* socketFd, address* targetAddress)
@@ -120,9 +122,11 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 	int authBit;
 	int ackBit;
 	char* authData;
+	uint32_t airplaneID;
 
 	char buffer[MAX_PACKET_LENGTH];
 
+	airplaneID = 0;
 	authData = nullptr;
 	ret = 0;
 	authBit = 0;
@@ -153,14 +157,21 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 			{
 				ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 			}
+			airplaneID = handshakePacket.getSrc();
+			memcpy(this->connectionDetails.airplaneID, &airplaneID, sizeof(uint32_t));
+
 			state = ConnState::HANDSHAKING;
 		}
+
+		return 1;
 
 	}
 
 	if (state == ConnState::HANDSHAKING && ackBit && !authBit)
 	{
 		state = ConnState::AUTHENTICATED;
+
+		return 1;
 	}
 
 	if (state == ConnState::AUTHENTICATED)
@@ -173,11 +184,11 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 		{
 			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
-
+		
 		ret = 1;
 	}
 
-	return ret;
+	return 1;
 }
 
 Connection::~Connection()

@@ -3,7 +3,9 @@
 #include "..\CSCN74000_FinalProject\connection.h"
 #include "..\CSCN74000_FinalProject\blackbox.h"
 #include "..\CSCN74000_FinalProject\position.h"
-#include <thread>
+
+int sendBlackBoxData(PacketDef& toSend, PacketDef& received, struct ConnDetails* pConnDets, sockaddr* rxSender, int* addrLength, char* recvBuffer);
+
 
 int main(void) {
 
@@ -17,10 +19,8 @@ int main(void) {
     int addrLength;
     int bytesRead;
     PacketDef beginsHandshake;
-    std::thread timerThread;
-    bool secondElapsed;
+ 
 
-    secondElapsed = false;
     shutdown = false;
     bytesRead = 0;
     addrLength = 0;
@@ -36,17 +36,6 @@ int main(void) {
     beginsHandshake.setSeqNum(0);
     beginsHandshake.setSrc(AIRPLANE_ID);
     beginsHandshake.setTotalCount(1);
-
-    //set up timer to set variable we can use to determine if a second has elapsed
-   
-    timerThread = std::thread([&] {
-        Sleep(500);
-        secondElapsed = true;
-        Sleep(500);
-        secondElapsed = false;
-        });
-
-    timerThread.detach();
 
     while (!shutdown)
     {
@@ -82,28 +71,9 @@ int main(void) {
 
             if (received.getFlag() == PacketDef::Flag::BB)  // The server has requested the client to send the black-box data
             {
-                Position pos;  
-				pos.createRandomValues();                       // Create the fake position data
-				std::string data = pos.createStringToSend();    // Convert the position data to a string
 
-				toSend.setData(data.c_str(), data.length());    // Set the body and body length of the new packet
-				if (toSend.getData() == nullptr)
-				{
-					std::cout << "Error setting data, size too large or error allocating memory." << std::endl;
-                    // Throw error?
-				}
-                char* buffer = nullptr;
-                unsigned int totalSize = toSend.Serialize(buffer);
-                if(buffer != nullptr)
-				    send(connectionDetails.socket, buffer, totalSize, NULL); // Send the packet
-
-                // Check for ACK
-				bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
-				received = PacketDef(recvBuffer, bytesRead);
-                if (received.getFlag() != PacketDef::Flag::ACK)
-                {
-                    // Error and no ACK returned
-                }
+                sendBlackBoxData(toSend, received, &connectionDetails, (struct sockaddr*)&rxSender, &addrLength, recvBuffer);
+                
             }
 
 			if (received.getFlag() == PacketDef::Flag::IMG) // The client has previously requested an image, and it is now being delivered.
@@ -112,9 +82,6 @@ int main(void) {
 			}
         }
 
-        if (secondElapsed > 1) {
-            // something?
-        }
 
         if (bytesRead <= 0)
         {
@@ -123,4 +90,34 @@ int main(void) {
     }
 
     return 1;
+}
+
+int sendBlackBoxData(PacketDef& toSend, PacketDef& received, struct ConnDetails* pConnDets, sockaddr* rxSender, int* addrLength, char* recvBuffer)
+{
+    int bytesRead = 0;
+    int received = 0;
+    bool ret = false;
+    Position pos;
+    pos.createRandomValues();                       // Create the fake position data
+    std::string data = pos.createStringToSend();    // Convert the position data to a string
+
+    toSend.setData(data.c_str(), data.length());    // Set the body and body length of the new packet
+    if (toSend.getData() == nullptr)
+    {
+        std::cout << "Error setting data, size too large or error allocating memory." << std::endl;
+        // Throw error?
+    }
+    char* buffer = nullptr;
+    unsigned int totalSize = toSend.Serialize(buffer);
+    if (buffer != nullptr)
+        send(pConnDets->socket, buffer, totalSize, NULL); // Send the packet
+
+    // Check for ACK
+    bytesRead = recvfrom(pConnDets->socket, recvBuffer, MAX_PACKET_LENGTH, NULL, rxSender, addrLength);
+    received = PacketDef(recvBuffer, bytesRead);
+    if (received.getFlag() != PacketDef::Flag::ACK)
+    {
+        // Error and no ACK returned
+        //send again??? or abort transmission - would require tasking another flag bit for abort
+    }
 }
