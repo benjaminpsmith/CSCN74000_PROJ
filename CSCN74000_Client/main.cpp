@@ -26,18 +26,21 @@ int main(void) {
     bytesRead = 0;
     addrLength = 0;
     err = 0;
-
+    
     //set the connection details and creat the socket
     connectionDetails.socket = flightConnection.createSocket();
     connectionDetails.addr = flightConnection.createAddress(SERVER_IP, SERVER_PORT);
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
     flightConnection.setPassphrase(SECURE_PASSWORD);
 
+    addrLength = sizeof(rxSender);
+
     beginsHandshake.setData(SECURE_PASSWORD, strlen(SECURE_PASSWORD));
     beginsHandshake.setDest(SERVER_ID);
     beginsHandshake.setSeqNum(0);
     beginsHandshake.setSrc(AIRPLANE_ID);
     beginsHandshake.setTotalCount(1);
+
 
     while (!shutdown)
     {
