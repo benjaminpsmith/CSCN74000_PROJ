@@ -109,7 +109,7 @@
     <Link>
       <SubSystem>Console</SubSystem>
       <GenerateDebugInformation>true</GenerateDebugInformation>
-      <AdditionalLibraryDirectories>C:\Users\benji\Documents\GitHub\CSCN74000_PROJ\CSCN74000_FinalProject\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
+      <AdditionalLibraryDirectories>$(SolutionDir)CSCN74000_FinalProject\x64\Debug;%(AdditionalLibraryDirectories)</AdditionalLibraryDirectories>
       <AdditionalDependencies>connection.obj;blackbox.obj;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
   </ItemDefinitionGroup>
@@ -130,15 +130,12 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="blackbox.cpp" />
-    <ClCompile Include="connection.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="blackbox.h" />
-    <ClInclude Include="connection.h" />
-    <ClInclude Include="packet.h" />
-    <ClInclude Include="position.h" />
+    <ProjectReference Include="..\CSCN74000_FinalProject\CSCN74000_FinalProject.vcxproj">
+      <Project>{5d990e50-235e-48ac-bbd7-e0acf3872dff}</Project>
+    </ProjectReference>
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
