@@ -89,7 +89,11 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
                 err = WSAGetLastError();
 
                 received = PacketDef(recvBuffer, bytesRead);
+            }
 
+            if (firstHandshakePacket)
+            {
+                firstHandshakePacket = false;
             }
             
             flightConnection.accept(received, &rxSender);
