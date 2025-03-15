@@ -19,7 +19,7 @@ public:
         : latitude(lat), longitude(lon), heading(hdg), velocity(vel), altitude(alt) {
     }
     Position(const std::string& csvData) {
-        int parsed = sscanf(csvData.c_str(), "%lf,%lf,%lf,%lf,%lf",
+        int parsed = sscanf_s(csvData.c_str(), "%lf,%lf,%lf,%lf,%lf",
             &latitude, &longitude, &heading, &velocity, &altitude);
 
         if (parsed != ATTRIBUTE_COUNT) {

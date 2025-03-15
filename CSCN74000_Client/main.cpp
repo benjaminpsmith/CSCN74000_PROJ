@@ -1,8 +1,8 @@
 // Source file for main of the server
-#include "..\CSCN74000_FinalProject\packet.h"
-#include "..\CSCN74000_FinalProject\connection.h"
-#include "..\CSCN74000_FinalProject\blackbox.h"
-#include "..\CSCN74000_FinalProject\position.h"
+#include "packet.h"
+#include "connection.h"
+#include "blackbox.h"
+#include "position.h"
 
 int sendBlackBoxData(PacketDef& toSend, PacketDef& received, struct ConnDetails* pConnDets, sockaddr* rxSender, int* addrLength, char* recvBuffer);
 
@@ -119,4 +119,6 @@ int sendBlackBoxData(PacketDef& toSend, PacketDef& received, struct ConnDetails*
         // Error and no ACK returned
         //send again??? or abort transmission - would require tasking another flag bit for abort
     }
+
+    return ret;
 }
