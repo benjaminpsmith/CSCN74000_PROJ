@@ -95,7 +95,6 @@ int main(void) {
 int sendBlackBoxData(PacketDef& toSend, PacketDef& received, struct ConnDetails* pConnDets, sockaddr* rxSender, int* addrLength, char* recvBuffer)
 {
     int bytesRead = 0;
-    int received = 0;
     bool ret = false;
     Position pos;
     pos.createRandomValues();                       // Create the fake position data

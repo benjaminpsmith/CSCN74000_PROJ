@@ -18,7 +18,7 @@ typedef enum SERVER_STATE : int8_t
     RECEIVING
 }ServerState;
 
-int serverThread(PacketDef&, bool);
+int serverThread(PacketDef&, bool, int);
 
 
 int main(void){
