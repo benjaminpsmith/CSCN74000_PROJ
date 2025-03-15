@@ -1,8 +1,6 @@
 // Source file for main of the server
-
-#include "connection.h"
 #include "packet.h"
-
+#include "connection.h"
 #include "blackbox.h"
 #include "position.h"
 

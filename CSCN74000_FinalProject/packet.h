@@ -161,6 +161,7 @@ public:
     PacketDef(int preAllocationBytes)
     {
         this->PACKET.BODY.data = new char[preAllocationBytes];
+        this->outBuffer = nullptr;
     }
     ~PacketDef(){
         if (PACKET.BODY.data)
