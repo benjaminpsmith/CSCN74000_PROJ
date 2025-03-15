@@ -40,11 +40,13 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
     int bytesRead;
     std::thread timerThread;
     bool secondElapsed;
+    int err;
 
     state = AWAITING_AUTH;
     secondElapsed = false;
     shutdown = false;
     bytesRead = 0;
+    err = 0;
 
     //set up timer to set variable we can use to determine if a second has elapsed
 
@@ -66,6 +68,8 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
 
     flightConnection.bindTo(&connectionDetails.socket, &connectionDetails.addr);
 
+    addrLength = sizeof(rxSender);
+
     //server states:
     //awaiting, idle, processing, sending or receiving
 
@@ -81,7 +85,11 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             if (!firstHandshakePacket)
             {
                 bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+
+                err = WSAGetLastError();
+
                 received = PacketDef(recvBuffer, bytesRead);
+
             }
             
             flightConnection.accept(received, &rxSender);

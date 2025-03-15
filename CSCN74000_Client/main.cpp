@@ -19,11 +19,13 @@ int main(void) {
     int addrLength;
     int bytesRead;
     PacketDef beginsHandshake;
+    int err;
  
 
     shutdown = false;
     bytesRead = 0;
     addrLength = 0;
+    err = 0;
 
     //set the connection details and creat the socket
     connectionDetails.socket = flightConnection.createSocket();
@@ -50,8 +52,14 @@ int main(void) {
             {
                 bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
 
-                received = PacketDef(recvBuffer, bytesRead);
-                flightConnection.establishConnection(received, &rxSender);
+                err = WSAGetLastError();
+
+                if (bytesRead > 0)
+                {
+                    received = PacketDef(recvBuffer, bytesRead);
+                    flightConnection.establishConnection(received, &rxSender);
+                }
+                
             }
             
 
