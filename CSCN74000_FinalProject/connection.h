@@ -1,6 +1,6 @@
 
 #define CONN_PORT 34214
-#define SERVER_IP "10.144.122.216"
+#define SERVER_IP "10.144.112.216"
 #define SERVER_PORT 34254
 #define SECURE_PASSWORD "lkjsdHJBFf987(*&%^bjsfy_SDGk187%^&$"
 

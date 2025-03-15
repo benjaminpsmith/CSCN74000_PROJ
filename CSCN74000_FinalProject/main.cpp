@@ -4,8 +4,7 @@
 #include "position.h"
 #include <thread>
 
-#define SERVER_IP "10.144.98.141"
-#define SERVER_PORT 34254
+
 
 #define BLACKBOX_FILE "_blackbox.csv"
 
