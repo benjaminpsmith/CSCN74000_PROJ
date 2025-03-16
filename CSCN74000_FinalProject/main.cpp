@@ -18,7 +18,7 @@ typedef enum SERVER_STATE : int8_t
 }ServerState;
 
 int serverThread(PacketDef&, bool, int);
-
+void requestBBData(ConnDetails& connectionDetails, PacketDef& toSend, PacketDef& received, address& rxSender, int& addrLength);
 
 int main(void){
     PacketDef received;
@@ -99,6 +99,12 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
                 Sleep(1);
             }
 
+            if (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)
+            {
+                //begins the looping exchange between the client and server to prevent them from deadlocking in receiveFrom calls
+                requestBBData(connectionDetails, toSend, received, rxSender, addrLength);
+            }
+
         }
 
         //initially this is 0, if nothing is received it is -1, and only if we receive do we leave the idle state. We go back to the idle state after 1 instance of receiving nothing.
@@ -163,18 +169,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
         {
             //send request for bb data
 
-            toSend.setSrc(SERVER_ID);
-            toSend.setDest(received.getSrc());
-            toSend.setFlag(PacketDef::Flag::BB);
-            toSend.setSeqNum(1);
-            toSend.setTotalCount(1);
-            toSend.setBodyLen(0);
-            toSend.setData(nullptr, 0);
-            toSend.setCrc(0);
-
-            char sendBuffer[MAX_PACKET_LENGTH];
-            int bytesToSend = toSend.Serialize(sendBuffer); 
-            sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
+            requestBBData(connectionDetails, toSend, received, rxSender, addrLength);
         }
 
 
@@ -203,4 +198,23 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
     }
 
     return 1;
+}
+
+
+void requestBBData(ConnDetails& connectionDetails, PacketDef& toSend, PacketDef& received, address& rxSender, int& addrLength)
+{
+    //send request for bb data
+
+    toSend.setSrc(SERVER_ID);
+    toSend.setDest(received.getSrc());
+    toSend.setFlag(PacketDef::Flag::BB);
+    toSend.setSeqNum(1);
+    toSend.setTotalCount(1);
+    toSend.setBodyLen(0);
+    toSend.setData(nullptr, 0);
+    toSend.setCrc(0);
+
+    char sendBuffer[MAX_PACKET_LENGTH];
+    int bytesToSend = toSend.Serialize(sendBuffer);
+    sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
 }
