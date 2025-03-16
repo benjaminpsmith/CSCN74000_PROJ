@@ -77,15 +77,16 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 
 		if (ret)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(targetAddress));
+			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
-		state = ConnState::AUTHENTICATED;
+		
 		return 1;
 	}
 
-	if (state == ConnState::AUTHENTICATED && ackBit)
+	if (state == ConnState::HANDSHAKING && ackBit)
 	{
-		ret = -1;
+		state = ConnState::AUTHENTICATED;
+		ret = 1;
 	}
 
 	return 1;
@@ -178,13 +179,7 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 
 	if (state == ConnState::HANDSHAKING && ackBit && !authBit)
 	{
-		state = ConnState::AUTHENTICATED;
 
-		return 1;
-	}
-
-	if (state == ConnState::AUTHENTICATED)
-	{
 		//send ACK
 		handshakePacket.setFlag(PacketDef::Flag::ACK);
 		ret = handshakePacket.Serialize(buffer);
@@ -193,8 +188,10 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 		{
 			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
-		
-		ret = 1;
+
+		state = ConnState::AUTHENTICATED;
+
+		return 1;
 	}
 
 	return 1;
