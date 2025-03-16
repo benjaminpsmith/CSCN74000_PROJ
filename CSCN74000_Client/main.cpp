@@ -127,7 +127,7 @@ int main(void) {
                 if (buffer != nullptr) {
 					std::cout << "Preparing to send..." << std::endl;
                     // Send the packet
-					send(connectionDetails.socket, buffer, totalSize, NULL); 
+					sendto(connectionDetails.socket, buffer, totalSize, NULL, (struct sockaddr*)&rxSender, sizeof(rxSender));
 					std::cout << "Sent black box data." << std::endl;
 
                     // Receive a response

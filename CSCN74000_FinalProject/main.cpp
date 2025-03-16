@@ -244,6 +244,10 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
 
     }
 
+    //This code has been added to simply keep the console window open until you type a character.
+    int garbage;
+    std::cin >> garbage;
+
     return 1;
 }
 
