@@ -79,6 +79,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
         while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
         {
             state = AWAITING_AUTH;
+            std::cout << "Server awaiting authentication..." << std::endl;
 
             //Only the main thread would not have a packet provided to it. Other threads will have an auth bit set in a packet passed to it as a result of the parent thread receiving a packet with an auth bit.
             //The packet is passed to the new thread, and that new thread will use that packet as the starting point for the handshake
@@ -97,13 +98,14 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
             {
                 Sleep(1);
+                std::cout << "Sleeping for one second..." << std::endl;
             }
 
-            if (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)
-            {
-                //begins the looping exchange between the client and server to prevent them from deadlocking in receiveFrom calls
-                requestBBData(connectionDetails, toSend, received, rxSender, addrLength);
-            }
+            //if (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)
+            //{
+            //    //begins the looping exchange between the client and server to prevent them from deadlocking in receiveFrom calls
+            //    requestBBData(connectionDetails, toSend, received, rxSender, addrLength);
+            //}
 
         }
 
@@ -113,17 +115,29 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             state = ServerState::IDLE;
         }
 
+        std::cout << "Server is now idle and waiting to receive packets..." << std::endl;
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+        if (bytesRead == -1) {
+            std::cerr << "Error in recvfrom(): " << WSAGetLastError() << std::endl;
+        }
+        else {
+            std::cout << "Server received " << bytesRead << " bytes." << std::endl;
+        }
         received = PacketDef(recvBuffer, bytesRead);    //RECV BB DATA
+        PacketDef::Flag incomingFlag = received.getFlag();
 
-        //If a BB packet is sent
-        if ((received.getFlag() & PacketDef::Flag::BB) == PacketDef::Flag::BB && state == ServerState::IDLE)  // We are now receiving the black-box data from the client
+        // Check if it is a black-box packet or a request for an image
+        switch (incomingFlag) {
+        case PacketDef::Flag::BB:   
         {
+			// We are now receiving the black-box data from the client
             state = ServerState::RECEIVING;
             std::string data(received.getData(), received.getBodyLen());    // Convert the body into a string
             Position pos(data);	                                            // Create a position object from the string     
             std::string filename = to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
             pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
+			std::cout << "Data : " << data << std::endl;
+			std::cout << "Black-box data received and written to file." << std::endl;
 
             // Send an ACK back to the client -  could potentially make one ahead of time and use it repeatedly since the body is empty, would only need to change dest?
             toSend.setSrc(SERVER_ID);
@@ -134,59 +148,92 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             toSend.setBodyLen(0);
             toSend.setData(nullptr, 0);
             toSend.setCrc(0);
-
             char sendBuffer[MAX_PACKET_LENGTH];
             int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
             sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
-
-
-            //LOG THE BB data
-
-
+            break;
         }
-        //if the Image flag is set
-        if ((received.getFlag() & PacketDef::Flag::IMG) == PacketDef::Flag::IMG && state == ServerState::IDLE)
+        case PacketDef::Flag::IMG:
         {
-            //receiving request for an image to send
 
-            //get the image from file
-
-            while (1)//some appropriate condition like count of increments of full packets + 1 with remainder
-            {
-                state = ServerState::PROCESSING;
-                //break up the image
-
-
-                //transition to sending and stay in sending until all are sent - will go back to idle after 1 receive without a packet 
-                state = ServerState::SENDING;
-
-                break;//remove
-            }
-
+            // COMPLETE DURING SPRINT 2
         }
-
-        if (secondElapsed)
-        {
-            //send request for bb data
-
-            requestBBData(connectionDetails, toSend, received, rxSender, addrLength);
-        }
+    }
 
 
-        //If we receive an auth packet after establishing a n=connection with a client, start the whole process over
-        //skip the first receive for an auth packet, because we have one.
-        //detach so we dont have to cleanup after ourselves.
-        if (received.getFlag() == PacketDef::AUTH)
-        {
-            std::thread newServerThread;
 
-            newServerThread = std::thread([&] {
+        ////If a BB packet is sent
+        //if ((received.getFlag() & PacketDef::Flag::BB) == PacketDef::Flag::BB && state == ServerState::IDLE)  // We are now receiving the black-box data from the client
+        //{
+        //    state = ServerState::RECEIVING;
+        //    std::string data(received.getData(), received.getBodyLen());    // Convert the body into a string
+        //    Position pos(data);	                                            // Create a position object from the string     
+        //    std::string filename = to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
+        //    pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
 
-                serverThread(received, true, serverPort + 1);
-                });
+        //    // Send an ACK back to the client -  could potentially make one ahead of time and use it repeatedly since the body is empty, would only need to change dest?
+        //    toSend.setSrc(SERVER_ID);
+        //    toSend.setDest(received.getSrc());
+        //    toSend.setFlag(PacketDef::Flag::ACK);
+        //    toSend.setSeqNum(1);
+        //    toSend.setTotalCount(1);
+        //    toSend.setBodyLen(0);
+        //    toSend.setData(nullptr, 0);
+        //    toSend.setCrc(0);
 
-            newServerThread.detach();
-        }
+        //    char sendBuffer[MAX_PACKET_LENGTH];
+        //    int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
+        //    sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
+
+
+        //    //LOG THE BB data
+
+
+        //}
+
+        ////if the Image flag is set
+        //if ((received.getFlag() & PacketDef::Flag::IMG) == PacketDef::Flag::IMG && state == ServerState::IDLE)
+        //{
+        //    //receiving request for an image to send
+
+        //    //get the image from file
+
+        //    while (1)//some appropriate condition like count of increments of full packets + 1 with remainder
+        //    {
+        //        state = ServerState::PROCESSING;
+        //        //break up the image
+
+
+        //        //transition to sending and stay in sending until all are sent - will go back to idle after 1 receive without a packet 
+        //        state = ServerState::SENDING;
+
+        //        break;//remove
+        //    }
+
+        //}
+
+        //if (secondElapsed)
+        //{
+        //    //send request for bb data
+
+        //    requestBBData(connectionDetails, toSend, received, rxSender, addrLength);
+        //}
+
+
+        ////If we receive an auth packet after establishing a n=connection with a client, start the whole process over
+        ////skip the first receive for an auth packet, because we have one.
+        ////detach so we dont have to cleanup after ourselves.
+        //if (received.getFlag() == PacketDef::AUTH)
+        //{
+        //    std::thread newServerThread;
+
+        //    newServerThread = std::thread([&] {
+
+        //        serverThread(received, true, serverPort + 1);
+        //        });
+
+        //    newServerThread.detach();
+        //}
 
 
         if (bytesRead <= 0)

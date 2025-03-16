@@ -83,61 +83,125 @@ int main(void) {
                 
             }
             
-
             if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
             {
                 Sleep(1);
             }
         }
 
-        //every second a request for BB data comes in.
+        // Client has now successfully been authenticated.
+        // The client will now alternate between sending black box data to the server and requests for images.
+		std::cout << " Client has been authenticated." << std::endl;
+		std::cout << " Client will now alternate between sending black box data to the server and requests for images." << std::endl;
 
-        //every second the client requests and image from the server
-        bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+		while (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)   // Loop
+		{
+            bool send_blackbox_data = true;
 
-        if (bytesRead > 0)
-        {
-            received = PacketDef(recvBuffer, bytesRead);
+			if (send_blackbox_data) { // Send black box data
+
+                // Create current position data
+                Position currentPosition;
+                currentPosition.createRandomValues();
+                std::string str_data = currentPosition.createStringToSend();
 
 
-            if (received.getFlag() == PacketDef::Flag::BB)  // The server has requested the client to send the black-box data
-            {
+                // Turn it into a packet
+                PacketDef blackbox_data;
+                blackbox_data.setSrc(AIRPLANE_ID);
+                blackbox_data.setDest(SERVER_ID);
+                blackbox_data.setFlag(PacketDef::Flag::BB);
+                blackbox_data.setSeqNum(1);
+                blackbox_data.setTotalCount(1);
+                blackbox_data.setData(str_data.c_str(), str_data.length());
+                blackbox_data.setCrc(0);
 
-                sendBlackBoxData(toSend, received, &connectionDetails, (struct sockaddr*)&rxSender, &addrLength, recvBuffer);
-                
+                if (blackbox_data.getData() == nullptr)
+                {
+                    std::cout << "Error setting data, size too large or error allocating memory." << std::endl;
+                }
+
+				unsigned int size = MAX_HEADER_LENGTH + MAX_TAIL_LENGTH + blackbox_data.getBodyLen();
+                char* buffer = new char[size];
+                unsigned int totalSize = blackbox_data.Serialize(buffer);
+                if (buffer != nullptr) {
+
+                    // Send the packet
+					send(connectionDetails.socket, buffer, totalSize, NULL); 
+					std::cout << "Sent black box data." << std::endl;
+
+                    // Receive a response
+					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+					std::cout << "Received response." << std::endl;
+					PacketDef received = PacketDef(recvBuffer, bytesRead);
+
+					// Check for ACK
+					if (received.getFlag() != PacketDef::Flag::ACK)
+					{
+						// Error
+						std::cout << "Error: No ACK received." << std::endl;
+					}
+                }
+			}
+            else if (!send_blackbox_data) {   // Request an image
+
+            }
+			else {  // Error handling
+
+
             }
 
-			if (received.getFlag() == PacketDef::Flag::IMG) // The client has previously requested an image, and it is now being delivered.
-			{
-				// We need to store all the packets that will be used to reconstruct the image
-			}
+			Sleep(1000);	// Sleep for 1 second
+
+		}
+   //     //every second a request for BB data comes in.
+
+   //     //every second the client requests and image from the server
+   //     bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+
+   //     if (bytesRead > 0)
+   //     {
+   //         received = PacketDef(recvBuffer, bytesRead);
 
 
-        }
+   //         if (received.getFlag() == PacketDef::Flag::BB)  // The server has requested the client to send the black-box data
+   //         {
 
-        if (secondElapsed)
-        {
-            //send request for bb data
+   //             sendBlackBoxData(toSend, received, &connectionDetails, (struct sockaddr*)&rxSender, &addrLength, recvBuffer);
+   //             
+   //         }
 
-            toSend.setSrc(SERVER_ID);
-            toSend.setDest(received.getSrc());
-            toSend.setFlag(PacketDef::Flag::IMG);
-            toSend.setSeqNum(1);
-            toSend.setTotalCount(1);
-            toSend.setBodyLen(0);
-            toSend.setData(nullptr, 0);
-            toSend.setCrc(0);
-
-            char sendBuffer[MAX_PACKET_LENGTH];
-            int bytesToSend = toSend.Serialize(sendBuffer);
-            sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
-        }
+			//if (received.getFlag() == PacketDef::Flag::IMG) // The client has previously requested an image, and it is now being delivered.
+			//{
+			//	// We need to store all the packets that will be used to reconstruct the image
+			//}
 
 
-        if (bytesRead <= 0)
-        {
-            Sleep(1);
-        }
+   //     }
+
+   //     if (secondElapsed)
+   //     {
+   //         //send request for bb data
+
+   //         toSend.setSrc(SERVER_ID);
+   //         toSend.setDest(received.getSrc());
+   //         toSend.setFlag(PacketDef::Flag::IMG);
+   //         toSend.setSeqNum(1);
+   //         toSend.setTotalCount(1);
+   //         toSend.setBodyLen(0);
+   //         toSend.setData(nullptr, 0);
+   //         toSend.setCrc(0);
+
+   //         char sendBuffer[MAX_PACKET_LENGTH];
+   //         int bytesToSend = toSend.Serialize(sendBuffer);
+   //         sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
+   //     }
+
+
+   //     if (bytesRead <= 0)
+   //     {
+   //         Sleep(1);
+   //     }
     }
 
     return 1;
