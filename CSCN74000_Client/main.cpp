@@ -125,7 +125,7 @@ int main(void) {
                 char* buffer = new char[size];
                 unsigned int totalSize = blackbox_data.Serialize(buffer);
                 if (buffer != nullptr) {
-
+					std::cout << "Preparing to send..." << std::endl;
                     // Send the packet
 					send(connectionDetails.socket, buffer, totalSize, NULL); 
 					std::cout << "Sent black box data." << std::endl;
