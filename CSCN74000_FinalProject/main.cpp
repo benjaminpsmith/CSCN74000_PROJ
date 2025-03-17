@@ -15,7 +15,6 @@ typedef enum SERVER_STATE : int8_t
 }ServerState;
 
 int serverThread(PacketDef&, bool, int);
-void requestBBData(ConnDetails& connectionDetails, PacketDef& toSend, PacketDef& received, address& rxSender, int& addrLength);
 
 int main(void){
     PacketDef received;
@@ -256,23 +255,4 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
     std::cin >> garbage;
 
     return 1;
-}
-
-
-void requestBBData(ConnDetails& connectionDetails, PacketDef& toSend, PacketDef& received, address& rxSender, int& addrLength)
-{
-    //send request for bb data
-
-    toSend.setSrc(SERVER_ID);
-    toSend.setDest(received.getSrc());
-    toSend.setFlag(PacketDef::Flag::BB);
-    toSend.setSeqNum(1);
-    toSend.setTotalCount(1);
-    toSend.setBodyLen(0);
-    toSend.setData(nullptr, 0);
-    toSend.setCrc(0);
-
-    char sendBuffer[MAX_PACKET_LENGTH];
-    int bytesToSend = toSend.Serialize(sendBuffer);
-    sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
 }

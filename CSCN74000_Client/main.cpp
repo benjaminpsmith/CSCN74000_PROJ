@@ -88,7 +88,7 @@ int main(void) {
         // Client has now successfully been authenticated.
         // The client will now alternate between sending black box data to the server and requests for images.
 		std::cout << " Client has been authenticated." << std::endl;
-		std::cout << " Client will now alternate between sending black box data to the server and requests for images." << std::endl;
+		std::cout << " Client will now alternate between sending black box data to the server and requests for images.\n" << std::endl;
 
 		while (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)   // Loop
 		{
@@ -98,35 +98,29 @@ int main(void) {
 
 			if (send_blackbox_data) { // Send black box data
 
-                char posBuff[MAX_PACKET_LENGTH] = { 0 };  // Avoids needing to use dynamic memory allocation
+                // Create buffers to hold the serialized position data and the serialized packet
+                char posBuff[MAX_PACKET_LENGTH] = { 0 };
                 char buffer [MAX_PACKET_LENGTH] = { 0 };
-
-                // Create current position data
+                
+                // Generate a current position (currently random for proof of concept)
                 Position currentPosition;
                 currentPosition.createRandomValues();
                 int positionLength = currentPosition.Serialize(posBuff);
 
-                // Turn it into a packet
-                PacketDef blackbox_data;
-                blackbox_data.setSrc(AIRPLANE_ID);
-                blackbox_data.setDest(SERVER_ID);
-                blackbox_data.setFlag(PacketDef::Flag::BB);
-                blackbox_data.setSeqNum(1);
-                blackbox_data.setTotalCount(1);
+                // Construct the packet to send
+                PacketDef blackbox_data(AIRPLANE_ID, SERVER_ID, PacketDef::Flag::BB, 1, 1);
                 blackbox_data.setData(posBuff, positionLength);
                 blackbox_data.setCrc(0);
-
                 if (blackbox_data.getData() == nullptr)
                 {
-                    std::cout << "Error setting data, size too large or error allocating memory." << std::endl;
+                    std::cout << "Error setting data: size too large or error allocating memory." << std::endl;
                 }
 
-				unsigned int size = MAX_HEADER_LENGTH + MAX_TAIL_LENGTH + blackbox_data.getBodyLen();
-                
+                // Serialize the packet
                 unsigned int totalSize = blackbox_data.Serialize(buffer);
-
                 if (buffer != nullptr) {
 					std::cout << "Preparing to send..." << std::endl;
+
                     // Send the packet
 					sendto(connectionDetails.socket, buffer, totalSize, 0, (struct sockaddr*)&rxSender, sizeof(rxSender));
 					std::cout << "Sent black box data." << std::endl;
@@ -139,8 +133,7 @@ int main(void) {
 					// Check for ACK
 					if (received.getFlag() != PacketDef::Flag::ACK)
 					{
-						// Error
-						std::cout << "Error: No ACK received." << std::endl;
+						std::cerr << "Error: No ACK received." << std::endl;
 					}
 
                 }
@@ -152,11 +145,9 @@ int main(void) {
             }
 			else {  // Error handling
 
-
             }
 
 			Sleep(1000);	// Sleep for 1 second
-
 		}
     }
 

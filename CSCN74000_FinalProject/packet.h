@@ -63,6 +63,19 @@ public:
 
 		PACKET.TAIL.crc = 0;
     }
+    PacketDef(uint32_t src, uint32_t dest, Flag flag, unsigned int seqNum, unsigned int totalCount) {
+
+		PACKET.HEADER.src = src;
+		PACKET.HEADER.dest = dest;
+		PACKET.HEADER.flag = flag;
+		PACKET.HEADER.seqNum = seqNum;
+		PACKET.HEADER.totalCount = totalCount;
+		PACKET.HEADER.bodyLen = 0;
+
+		PACKET.BODY.data = nullptr;
+
+		PACKET.TAIL.crc = 0;
+    }
     PacketDef(const char* rawData, int length){ // This is the "deserialize" function
 
         size_t offset = 0;
