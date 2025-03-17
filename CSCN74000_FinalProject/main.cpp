@@ -132,11 +132,28 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
         {
 			// We are now receiving the black-box data from the client
             state = ServerState::RECEIVING;
-            std::string data(received.getData(), received.getBodyLen());    // Convert the body into a string
-            Position pos(data);	                                            // Create a position object from the string     
+            Position pos;
+            std::string dataLat;
+            std::string dataLong;
+            std::string dataHeading;
+            std::string dataVelocity;
+            std::string dataAltitude;
+            double tempData;
+
+            memcpy(&tempData, received.getData(), sizeof(double));
+            dataLat = to_string(tempData);
+            memcpy(&tempData, received.getData() + sizeof(double), sizeof(double));
+            dataLong = to_string(tempData);
+            memcpy(&tempData, received.getData() + sizeof(double) + sizeof(double), sizeof(double));
+            dataHeading = to_string(tempData);
+            memcpy(&tempData, received.getData() + sizeof(double) + sizeof(double) + sizeof(double), sizeof(double));
+            dataVelocity = to_string(tempData);
+            memcpy(&tempData, received.getData() + sizeof(double) + sizeof(double) + sizeof(double) + sizeof(double), sizeof(double));
+            dataAltitude = to_string(tempData);
+                                          // Create a position object from the string     
             std::string filename = to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
-            pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
-			std::cout << "Data : " << data << std::endl;
+            pos.writeToFile(filename, dataLat, dataLong, dataHeading, dataVelocity, dataAltitude);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
+			std::cout << "Data : " << dataLat << ", " << dataLong << ", " << dataHeading << ", " << dataVelocity << ", " << dataAltitude << std::endl;
 			std::cout << "Black-box data received and written to file." << std::endl;
 
             // Send an ACK back to the client -  could potentially make one ahead of time and use it repeatedly since the body is empty, would only need to change dest?

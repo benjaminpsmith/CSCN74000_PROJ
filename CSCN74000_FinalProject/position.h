@@ -40,7 +40,7 @@ public:
     void setAltitude(double alt) { altitude = alt; }
 
     // File IO Functions
-    bool writeToFile(std::string filePath) {
+    bool writeToFile(std::string filePath, std::string longitude, std::string latitude, std::string heading, std::string velocity, std::string altitude ) {
 
         std::ofstream file;
         file.open(filePath, std::ios::app);
@@ -73,7 +73,19 @@ public:
     }
 
     // Create a string that we can used to build a packet body and send.
-    std::string createStringToSend() {
-        return std::to_string(latitude) + "," + std::to_string(longitude) + "," + std::to_string(heading) + "," + std::to_string(velocity) + "," + std::to_string(altitude);
+    int createStringToSend(char* outBuff) {
+        int pos = 0;
+        memcpy(outBuff + pos, &latitude, sizeof(double));
+        pos += sizeof(double);
+        memcpy(outBuff + pos, &longitude, sizeof(double));
+        pos += sizeof(double);
+        memcpy(outBuff + pos, &heading, sizeof(double));
+        pos += sizeof(double);
+        memcpy(outBuff + pos, &velocity, sizeof(double));
+        pos += sizeof(double);
+        memcpy(outBuff + pos, &altitude, sizeof(double));
+        pos += sizeof(double);
+
+        return (sizeof(double) * 5);
     }
 };

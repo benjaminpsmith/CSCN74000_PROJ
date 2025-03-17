@@ -23,7 +23,6 @@ int main(void) {
     std::thread timerThread;
     bool secondElapsed;
 
-
     secondElapsed = false;
     shutdown = false;
     bytesRead = 0;
@@ -97,13 +96,13 @@ int main(void) {
 		while (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)   // Loop
 		{
             bool send_blackbox_data = true;
-
+            char posBuff[60] = { 0 };
 			if (send_blackbox_data) { // Send black box data
 
                 // Create current position data
                 Position currentPosition;
                 currentPosition.createRandomValues();
-                std::string str_data = currentPosition.createStringToSend();
+                int positionLength = currentPosition.createStringToSend(posBuff);
 
 
                 // Turn it into a packet
@@ -113,7 +112,7 @@ int main(void) {
                 blackbox_data.setFlag(PacketDef::Flag::BB);
                 blackbox_data.setSeqNum(1);
                 blackbox_data.setTotalCount(1);
-                blackbox_data.setData(str_data.c_str(), str_data.length());
+                blackbox_data.setData(posBuff, positionLength);
                 blackbox_data.setCrc(0);
 
                 if (blackbox_data.getData() == nullptr)
@@ -122,8 +121,9 @@ int main(void) {
                 }
 
 				unsigned int size = MAX_HEADER_LENGTH + MAX_TAIL_LENGTH + blackbox_data.getBodyLen();
-                char* buffer = new char[size];
+                char* buffer = new char[MAX_PACKET_LENGTH];
                 unsigned int totalSize = blackbox_data.Serialize(buffer);
+
                 if (buffer != nullptr) {
 					std::cout << "Preparing to send..." << std::endl;
                     // Send the packet
@@ -133,7 +133,7 @@ int main(void) {
                     // Receive a response
 					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, 0, (struct sockaddr*)&rxSender, &addrLength);
 					std::cout << "Received response." << std::endl;
-					PacketDef received = PacketDef(recvBuffer, bytesRead);
+					received = PacketDef(recvBuffer, bytesRead);
 
 					// Check for ACK
 					if (received.getFlag() != PacketDef::Flag::ACK)
@@ -141,7 +141,10 @@ int main(void) {
 						// Error
 						std::cout << "Error: No ACK received." << std::endl;
 					}
+
                 }
+
+                
 			}
             else if (!send_blackbox_data) {   // Request an image
 
@@ -154,86 +157,8 @@ int main(void) {
 			Sleep(1000);	// Sleep for 1 second
 
 		}
-   //     //every second a request for BB data comes in.
-
-   //     //every second the client requests and image from the server
-   //     bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
-
-   //     if (bytesRead > 0)
-   //     {
-   //         received = PacketDef(recvBuffer, bytesRead);
-
-
-   //         if (received.getFlag() == PacketDef::Flag::BB)  // The server has requested the client to send the black-box data
-   //         {
-
-   //             sendBlackBoxData(toSend, received, &connectionDetails, (struct sockaddr*)&rxSender, &addrLength, recvBuffer);
-   //             
-   //         }
-
-			//if (received.getFlag() == PacketDef::Flag::IMG) // The client has previously requested an image, and it is now being delivered.
-			//{
-			//	// We need to store all the packets that will be used to reconstruct the image
-			//}
-
-
-   //     }
-
-   //     if (secondElapsed)
-   //     {
-   //         //send request for bb data
-
-   //         toSend.setSrc(SERVER_ID);
-   //         toSend.setDest(received.getSrc());
-   //         toSend.setFlag(PacketDef::Flag::IMG);
-   //         toSend.setSeqNum(1);
-   //         toSend.setTotalCount(1);
-   //         toSend.setBodyLen(0);
-   //         toSend.setData(nullptr, 0);
-   //         toSend.setCrc(0);
-
-   //         char sendBuffer[MAX_PACKET_LENGTH];
-   //         int bytesToSend = toSend.Serialize(sendBuffer);
-   //         sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
-   //     }
-
-
-   //     if (bytesRead <= 0)
-   //     {
-   //         Sleep(1);
-   //     }
     }
 
     return 1;
 }
 
-int sendBlackBoxData(PacketDef& toSend, PacketDef& received, struct ConnDetails* pConnDets, sockaddr* rxSender, int* addrLength, char* recvBuffer)
-{
-    int bytesRead = 0;
-    bool ret = false;
-    Position pos;
-    pos.createRandomValues();                       // Create the fake position data
-    std::string data = pos.createStringToSend();    // Convert the position data to a string
-
-    toSend.setData(data.c_str(), data.length());    // Set the body and body length of the new packet
-    if (toSend.getData() == nullptr)
-    {
-        std::cout << "Error setting data, size too large or error allocating memory." << std::endl;
-        // Throw error?
-    }
-    char* buffer = nullptr;
-    unsigned int totalSize = toSend.Serialize(buffer);
-    if (buffer != nullptr)
-        send(pConnDets->socket, buffer, totalSize, NULL); // Send the packet
-
-    // Check for ACK
-    bytesRead = recvfrom(pConnDets->socket, recvBuffer, MAX_PACKET_LENGTH, NULL, rxSender, addrLength);
-    received = PacketDef(recvBuffer, bytesRead);
-    if (received.getFlag() != PacketDef::Flag::ACK)
-    {
-        // Error and no ACK returned
-        //send again??? or abort transmission - would require tasking another flag bit for abort
-    }
-
-    return ret;
-}
