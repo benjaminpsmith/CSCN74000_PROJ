@@ -1,10 +1,7 @@
 // Source file for main of the server
 #include "packet.h"
 #include "connection.h"
-#include "position.h"
 #include <thread>
-
-
 
 #define BLACKBOX_FILE "_blackbox.csv"
 
@@ -100,13 +97,6 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
                 Sleep(1);
                 std::cout << "Sleeping for one second..." << std::endl;
             }
-
-            //if (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)
-            //{
-            //    //begins the looping exchange between the client and server to prevent them from deadlocking in receiveFrom calls
-            //    requestBBData(connectionDetails, toSend, received, rxSender, addrLength);
-            //}
-
         }
 
         //initially this is 0, if nothing is received it is -1, and only if we receive do we leave the idle state. We go back to the idle state after 1 instance of receiving nothing.

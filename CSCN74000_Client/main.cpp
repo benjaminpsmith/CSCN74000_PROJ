@@ -1,7 +1,7 @@
 // Source file for main of the server
 #include "packet.h"
 #include "connection.h"
-#include "position.h"
+
 #include <thread>
 
 int main(void) {
@@ -93,14 +93,18 @@ int main(void) {
 		while (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)   // Loop
 		{
             bool send_blackbox_data = true;
-            char posBuff[60] = { 0 };
+
+            
+
 			if (send_blackbox_data) { // Send black box data
+
+                char posBuff[MAX_PACKET_LENGTH] = { 0 };  // Avoids needing to use dynamic memory allocation
+                char buffer [MAX_PACKET_LENGTH] = { 0 };
 
                 // Create current position data
                 Position currentPosition;
                 currentPosition.createRandomValues();
-                int positionLength = currentPosition.createStringToSend(posBuff);
-
+                int positionLength = currentPosition.Serialize(posBuff);
 
                 // Turn it into a packet
                 PacketDef blackbox_data;
@@ -118,7 +122,7 @@ int main(void) {
                 }
 
 				unsigned int size = MAX_HEADER_LENGTH + MAX_TAIL_LENGTH + blackbox_data.getBodyLen();
-                char* buffer = new char[MAX_PACKET_LENGTH];
+                
                 unsigned int totalSize = blackbox_data.Serialize(buffer);
 
                 if (buffer != nullptr) {

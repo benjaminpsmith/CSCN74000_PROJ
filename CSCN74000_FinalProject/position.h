@@ -27,18 +27,6 @@ public:
         }
     }
 
-    // Getters and Setters
-    double getLatitude() const { return latitude; }
-    double getLongitude() const { return longitude; }
-    double getHeading() const { return heading; }
-    double getVelocity() const { return velocity; }
-    double getAltitude() const { return altitude; }
-    void setLatitude(double lat) { latitude = lat; }
-    void setLongitude(double lon) { longitude = lon; }
-    void setHeading(double hdg) { heading = hdg; }
-    void setVelocity(double vel) { velocity = vel; }
-    void setAltitude(double alt) { altitude = alt; }
-
     // File IO Functions
     bool writeToFile(std::string filePath, std::string longitude, std::string latitude, std::string heading, std::string velocity, std::string altitude ) {
 
@@ -73,19 +61,28 @@ public:
     }
 
     // Create a string that we can used to build a packet body and send.
-    int createStringToSend(char* outBuff) {
-        int pos = 0;
-        memcpy(outBuff + pos, &latitude, sizeof(double));
-        pos += sizeof(double);
-        memcpy(outBuff + pos, &longitude, sizeof(double));
-        pos += sizeof(double);
-        memcpy(outBuff + pos, &heading, sizeof(double));
-        pos += sizeof(double);
-        memcpy(outBuff + pos, &velocity, sizeof(double));
-        pos += sizeof(double);
-        memcpy(outBuff + pos, &altitude, sizeof(double));
-        pos += sizeof(double);
+    int Serialize(char* outBuff) {
 
-        return (sizeof(double) * 5);
+        int offset = 0;
+
+        memcpy(outBuff + offset, &latitude, sizeof(double));
+        offset += sizeof(double);
+        memcpy(outBuff + offset, &longitude, sizeof(double));
+        offset += sizeof(double);
+        memcpy(outBuff + offset, &heading, sizeof(double));
+        offset += sizeof(double);
+        memcpy(outBuff + offset, &velocity, sizeof(double));
+        offset += sizeof(double);
+        memcpy(outBuff + offset, &altitude, sizeof(double));
+
+        return (sizeof(double) * ATTRIBUTE_COUNT);
     }
+
+	static unsigned int GetAttributeCount() {
+		return ATTRIBUTE_COUNT;
+	}
+
+	static unsigned int GetSerializedSize() {
+		return sizeof(double) * ATTRIBUTE_COUNT;
+	}
 };

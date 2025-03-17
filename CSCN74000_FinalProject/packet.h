@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include "position.h"
 using namespace std;
 
 const unsigned int MAX_HEADER_LENGTH = 21;  // This may not be accurate due to byte padding and alignment
@@ -47,8 +48,6 @@ private:
         }TAIL;
     }PACKET;
 
-    char* outBuffer; // What data will be stored in after being serialized
-
 public:
     // Constructor and Destructor
     PacketDef(){
@@ -63,9 +62,6 @@ public:
 		PACKET.BODY.data = nullptr;
 
 		PACKET.TAIL.crc = 0;
-
-        this->outBuffer = nullptr;
-
     }
     PacketDef(const char* rawData, int length){ // This is the "deserialize" function
 
@@ -79,7 +75,6 @@ public:
         PACKET.HEADER.bodyLen = 0;
 
         PACKET.BODY.data = nullptr;
-        this->outBuffer = nullptr;
 
         PACKET.TAIL.crc = 0;
 
@@ -178,14 +173,7 @@ public:
 
 		// Tail
 		this->PACKET.TAIL.crc = srcPkt.PACKET.TAIL.crc;
-		this->outBuffer = nullptr;
 
-    }
-    PacketDef(int preAllocationBytes)
-    {
-        this->PACKET.BODY.data = new char[preAllocationBytes];
-        this->outBuffer = nullptr;
-        this->PACKET.HEADER.bodyLen = preAllocationBytes;
     }
     ~PacketDef(){
         if (PACKET.BODY.data != nullptr)
