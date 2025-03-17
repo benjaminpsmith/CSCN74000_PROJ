@@ -127,11 +127,11 @@ int main(void) {
                 if (buffer != nullptr) {
 					std::cout << "Preparing to send..." << std::endl;
                     // Send the packet
-					sendto(connectionDetails.socket, buffer, totalSize, NULL, (struct sockaddr*)&rxSender, sizeof(rxSender));
+					sendto(connectionDetails.socket, buffer, totalSize, 0, (struct sockaddr*)&rxSender, sizeof(rxSender));
 					std::cout << "Sent black box data." << std::endl;
 
                     // Receive a response
-					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, 0, (struct sockaddr*)&rxSender, &addrLength);
 					std::cout << "Received response." << std::endl;
 					PacketDef received = PacketDef(recvBuffer, bytesRead);
 

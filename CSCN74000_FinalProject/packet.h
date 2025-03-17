@@ -83,15 +83,6 @@ public:
 
         PACKET.TAIL.crc = 0;
 
-        if (length < MIN_PACKET_LENGTH || length <= 0)
-        {
-            if (PACKET.BODY.data != nullptr)
-                delete[] PACKET.BODY.data;
-
-            return;
-        }
-
-
         // Header
         // Src
         memcpy(&PACKET.HEADER.src, rawData + offset, sizeof(PACKET.HEADER.src));
@@ -117,21 +108,15 @@ public:
         memcpy(&PACKET.HEADER.bodyLen, rawData + offset, sizeof(PACKET.HEADER.bodyLen));
         offset += sizeof(PACKET.HEADER.bodyLen);
 
-        // Body
-        // Data
-        if (this->PACKET.BODY.data == nullptr)
-        {
-            PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
-        }
-        else
-        {
-            delete[] PACKET.BODY.data;
-            PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
-        }
-        memset(PACKET.BODY.data, 0, PACKET.HEADER.bodyLen);
+        if (PACKET.HEADER.bodyLen > 0) {
 
-        memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen);
-        offset += PACKET.HEADER.bodyLen;
+			PACKET.BODY.data = new char[PACKET.HEADER.bodyLen];
+
+            memset(PACKET.BODY.data, 0, PACKET.HEADER.bodyLen);
+
+            memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen);
+            offset += PACKET.HEADER.bodyLen;
+        }
 
         // Tail
         // CRC
@@ -165,7 +150,7 @@ public:
         this->outBuffer = nullptr;
     }
     ~PacketDef(){
-        if (PACKET.BODY.data)
+        if (PACKET.BODY.data != nullptr)
             delete[]PACKET.BODY.data;
     }
 
