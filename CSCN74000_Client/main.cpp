@@ -61,7 +61,7 @@ int main(void) {
     beginsHandshake.setTotalCount(1);
 
     while (!shutdown)
-    {
+    { 
         while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
         {
             if (flightConnection.getAuthenticationState() == ConnState::UNAUTHENTICATED)

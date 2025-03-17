@@ -42,7 +42,7 @@ struct ConnDetails {
 };
 
 class Connection {
-private:
+private: 
 	WSADATA wsaData;
 	ConnState state;
 	const char* passphrase;

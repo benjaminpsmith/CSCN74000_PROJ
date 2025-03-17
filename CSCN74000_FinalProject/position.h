@@ -67,7 +67,7 @@ public:
 
         latitude = lat(gen);
         longitude = lon(gen);
-        heading = head(gen);
+        heading = head(gen); 
         velocity = vel(gen);
         altitude = alt(gen);
     }

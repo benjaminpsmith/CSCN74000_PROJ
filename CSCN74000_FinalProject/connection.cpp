@@ -63,7 +63,7 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 
 		if (ret)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
+			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress)); 
 			int err = WSAGetLastError();
 		}
 		state = ConnState::HANDSHAKING;

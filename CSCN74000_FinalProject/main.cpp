@@ -47,7 +47,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
     shutdown = false;
     bytesRead = 0;
     err = 0;
-
+     
     //set up timer to set variable we can use to determine if a second has elapsed
 
     timerThread = std::thread([&] {
@@ -61,7 +61,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
     timerThread.detach();
 
     //set the connection details and creat the socket
-    connectionDetails.socket = flightConnection.createSocket();
+    connectionDetails.socket = flightConnection.createSocket(); 
     connectionDetails.addr = flightConnection.createAddress(serverPort, SERVER_IP);
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
     flightConnection.setPassphrase(SECURE_PASSWORD);

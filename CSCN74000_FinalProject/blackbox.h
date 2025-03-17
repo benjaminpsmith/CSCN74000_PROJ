@@ -19,4 +19,4 @@ public:
 	int loadData(char* pathToImage);
 	
 	const std::vector<PacketDef>* getPacketList();
-};
+}; 

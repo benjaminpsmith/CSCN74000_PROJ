@@ -27,7 +27,7 @@ int BlackBox::loadData(char* pathToData)
 		{
 			PacketDef entry(MAX_BODY_LENGTH);
 			std::string data;
-
+			 
 			std::getline(this->blackBoxFileStream, data);
 			memcpy(pBuffer, data.c_str(), data.length());
 			pBuffer += ALTITUDE_LEN;
