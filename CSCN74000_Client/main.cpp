@@ -1,11 +1,8 @@
 // Source file for main of the server
 #include "packet.h"
 #include "connection.h"
-#include "blackbox.h"
 #include "position.h"
 #include <thread>
-int sendBlackBoxData(PacketDef& toSend, PacketDef& received, struct ConnDetails* pConnDets, sockaddr* rxSender, int* addrLength, char* recvBuffer);
-
 
 int main(void) {
 
@@ -161,4 +158,3 @@ int main(void) {
 
     return 1;
 }
-

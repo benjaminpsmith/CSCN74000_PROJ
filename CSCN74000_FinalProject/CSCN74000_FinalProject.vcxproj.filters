@@ -18,18 +18,12 @@
     <ClCompile Include="main.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
-    <ClCompile Include="blackbox.cpp">
-      <Filter>Source Files</Filter>
-    </ClCompile>
     <ClCompile Include="connection.cpp">
       <Filter>Source Files</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="connection.h">
-      <Filter>Header Files</Filter>
-    </ClInclude>
-    <ClInclude Include="blackbox.h">
       <Filter>Header Files</Filter>
     </ClInclude>
     <ClInclude Include="packet.h">

@@ -128,12 +128,10 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="blackbox.cpp" />
     <ClCompile Include="connection.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="blackbox.h" />
     <ClInclude Include="connection.h" />
     <ClInclude Include="packet.h" />
   </ItemGroup>
