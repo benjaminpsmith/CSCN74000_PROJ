@@ -86,8 +86,9 @@ public:
         if (length < MIN_PACKET_LENGTH || length <= 0)
         {
             if (PACKET.BODY.data != nullptr)
+            {
                 delete[] PACKET.BODY.data;
-
+            }
             return;
         }
 
@@ -119,19 +120,33 @@ public:
 
         // Body
         // Data
-        if (this->PACKET.BODY.data == nullptr)
+        if (this->PACKET.BODY.data == nullptr && PACKET.HEADER.bodyLen > 0)
         {
             PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
+
+            memset(PACKET.BODY.data, 0, PACKET.HEADER.bodyLen);
+
+            memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen);
+            offset += PACKET.HEADER.bodyLen;
         }
         else
         {
-            delete[] PACKET.BODY.data;
-            PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
-        }
-        memset(PACKET.BODY.data, 0, PACKET.HEADER.bodyLen);
+            if (this->PACKET.BODY.data != nullptr)
+            {
+                delete[] PACKET.BODY.data;
+            }
+            
+            if (PACKET.HEADER.bodyLen > 0)
+            {
+                PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Could check for bad allocation
 
-        memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen);
-        offset += PACKET.HEADER.bodyLen;
+                memset(PACKET.BODY.data, 0, PACKET.HEADER.bodyLen);
+
+                memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen);
+                offset += PACKET.HEADER.bodyLen;
+            }
+        }
+        
 
         // Tail
         // CRC
@@ -145,13 +160,20 @@ public:
 		this->PACKET.HEADER.flag = srcPkt.PACKET.HEADER.flag;
 		this->PACKET.HEADER.bodyLen = srcPkt.PACKET.HEADER.bodyLen;
 		
+
+        if (this->PACKET.BODY.data != nullptr)
+        {
+            delete[] this->PACKET.BODY.data;
+        }
+
 		// Body
 		if (srcPkt.PACKET.HEADER.bodyLen > 0) {
 			this->PACKET.BODY.data = new char[srcPkt.PACKET.HEADER.bodyLen];
-			memcpy(this->PACKET.BODY.data, srcPkt.PACKET.BODY.data, srcPkt.PACKET.HEADER.bodyLen);
+            memcpy(this->PACKET.BODY.data, srcPkt.PACKET.BODY.data, this->PACKET.HEADER.bodyLen);
 		}
 		else {
 			this->PACKET.BODY.data = nullptr;
+            this->PACKET.HEADER.bodyLen = 0;
 		}
 
 		// Tail
@@ -163,9 +185,10 @@ public:
     {
         this->PACKET.BODY.data = new char[preAllocationBytes];
         this->outBuffer = nullptr;
+        this->PACKET.HEADER.bodyLen = preAllocationBytes;
     }
     ~PacketDef(){
-        if (PACKET.BODY.data)
+        if (PACKET.BODY.data != nullptr)
             delete[]PACKET.BODY.data;
     }
 
@@ -209,6 +232,7 @@ public:
 
         // Allocate memory for new data
 		PACKET.BODY.data = new char[bytes];
+        memset(PACKET.BODY.data, 0, bytes);
 		memcpy(PACKET.BODY.data, data, bytes);
 
 		PACKET.HEADER.bodyLen = (unsigned int)bytes;
@@ -292,12 +316,21 @@ public:
 
     PacketDef& operator=(const PacketDef& other)
     {
-        int bodyLen = 0;
+        unsigned int bodyLen = 0;
 
-        memcpy(&this->PACKET.HEADER, &other.PACKET.HEADER, sizeof(this->PACKET.HEADER));
+        this->PACKET.HEADER.bodyLen = other.PACKET.HEADER.bodyLen;
+        this->PACKET.HEADER.dest = other.PACKET.HEADER.dest;
+        this->PACKET.HEADER.flag = other.PACKET.HEADER.flag;
+        this->PACKET.HEADER.seqNum = other.PACKET.HEADER.seqNum;
+        this->PACKET.HEADER.src = other.PACKET.HEADER.src;
+        this->PACKET.HEADER.totalCount = other.PACKET.HEADER.totalCount;
+
+        bodyLen = this->PACKET.HEADER.bodyLen;
+
         if (this->PACKET.BODY.data != nullptr)
         {
-            bodyLen = other.getBodyLen();
+            delete[] this->PACKET.BODY.data;
+            
             this->PACKET.BODY.data = new char[bodyLen];
         }
         else

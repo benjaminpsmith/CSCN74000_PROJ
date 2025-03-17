@@ -56,8 +56,8 @@ public:
 
     // Create Random Values
     void createRandomValues() {
-        std::random_device rd;
-        std::mt19937 gen(rd());
+        //std::random_device rd;
+        std::mt19937 gen(time(nullptr));
 
         std::uniform_real_distribution<double> lat(-90.0, 90.0);
         std::uniform_real_distribution<double> lon(-180.0, 180.0);
