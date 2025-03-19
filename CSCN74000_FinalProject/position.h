@@ -12,6 +12,8 @@ private:
     double velocity = 0.0; // Knots
     double altitude = 0.0; // Metres
 
+	const int ERR = -1;
+
 public:
     // Constructors
     Position() = default;
@@ -65,15 +67,15 @@ public:
 
         int offset = 0;
 
-        memcpy(outBuff + offset, &latitude, sizeof(double));
+		if (memcpy(outBuff + offset, &latitude, sizeof(double)) != outBuff + offset) { return ERR; }
         offset += sizeof(double);
-        memcpy(outBuff + offset, &longitude, sizeof(double));
+        if (memcpy(outBuff + offset, &longitude, sizeof(double)) != outBuff + offset) { return ERR; }
         offset += sizeof(double);
-        memcpy(outBuff + offset, &heading, sizeof(double));
+        if (memcpy(outBuff + offset, &heading, sizeof(double)) != outBuff + offset) { return ERR; }
         offset += sizeof(double);
-        memcpy(outBuff + offset, &velocity, sizeof(double));
+        if (memcpy(outBuff + offset, &velocity, sizeof(double)) != outBuff + offset) { return ERR; }
         offset += sizeof(double);
-        memcpy(outBuff + offset, &altitude, sizeof(double));
+        if (memcpy(outBuff + offset, &altitude, sizeof(double)) != outBuff + offset) { return ERR; }
 
         return (sizeof(double) * ATTRIBUTE_COUNT);
     }
