@@ -2,8 +2,13 @@
 
 Connection::Connection()
 {
+	state = ConnState::UNAUTHENTICATED;
 	WORD version = MAKEWORD(2, 2);
 	int err = WSAStartup(version, &wsaData);
+	if (err)
+	{
+		perror("Error starting WSA.\n");
+	}
 
 	this->connectionDetails.socket = 0;
 	this->passphrase = nullptr;
@@ -23,13 +28,21 @@ fd Connection::createSocket()
 	return createdSocket;
 }
 
-address Connection::createAddress(iPAddress ip, port portNum)
+address Connection::createAddress(port portNum, iPAddress ip)
 {
 	address connectionAddress;
 
 	connectionAddress.sin_family = AF_INET;
 	connectionAddress.sin_port = htons(portNum);
-	connectionAddress.sin_addr.s_addr = INADDR_ANY;
+	if (ip == nullptr)
+	{
+		connectionAddress.sin_addr.s_addr = INADDR_ANY;
+	}
+	else
+	{
+		connectionAddress.sin_addr.s_addr = inet_addr(ip);
+	}
+	
 
 	return connectionAddress;
 }
@@ -40,13 +53,13 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 	uint8_t flags;
 	int authBit;
 	int ackBit;
-	char buffer[MAX_PACKET_LENGTH];
+	char buffer[Constants::MAX_PACKET_LENGTH];
 
 	ret = 0;
 	flags = handshakePacket.getFlag();
 
-	authBit = flags & 0x8;
-	ackBit = flags & 0x10;
+	authBit = flags & 0x4;
+	ackBit = flags & 0x8;
 
 	if (state == ConnState::UNAUTHENTICATED && !authBit)
 	{
@@ -55,9 +68,11 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 
 		if (ret)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
+			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress)); 
+			int err = WSAGetLastError();
 		}
 		state = ConnState::HANDSHAKING;
+		return 1;
 	}
 
 	if (state == ConnState::HANDSHAKING && authBit && ackBit)
@@ -67,17 +82,19 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 
 		if (ret)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
+			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
-		state = ConnState::AUTHENTICATED;
+		
+		return 1;
 	}
 
-	if (state == ConnState::AUTHENTICATED && ackBit)
+	if (state == ConnState::HANDSHAKING && ackBit)
 	{
-		ret = -1;
+		state = ConnState::AUTHENTICATED;
+		ret = 1;
 	}
 
-	return ret;
+	return 1;
 }
 
 void Connection::setConnectionDetails(fd* socketFd, address* targetAddress)
@@ -120,17 +137,19 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 	int authBit;
 	int ackBit;
 	char* authData;
+	uint32_t airplaneID;
 
-	char buffer[MAX_PACKET_LENGTH];
+	char buffer[Constants::MAX_PACKET_LENGTH];
 
+	airplaneID = 0;
 	authData = nullptr;
 	ret = 0;
 	authBit = 0;
 	ackBit = 0;
 	flags = handshakePacket.getFlag();
 
-	authBit = flags & 0x8;
-	ackBit = flags & 0x10;
+	authBit = flags & 0x4;
+	ackBit = flags & 0x8;
 
 	if (state == ConnState::UNAUTHENTICATED && authBit)
 	{
@@ -151,33 +170,36 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 
 			if (ret)
 			{
-				ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
+				ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
 			}
+			airplaneID = handshakePacket.getSrc();
+			memcpy(this->connectionDetails.airplaneID, &airplaneID, 3);
+
 			state = ConnState::HANDSHAKING;
 		}
+
+		return 1;
 
 	}
 
 	if (state == ConnState::HANDSHAKING && ackBit && !authBit)
 	{
-		state = ConnState::AUTHENTICATED;
-	}
 
-	if (state == ConnState::AUTHENTICATED)
-	{
 		//send ACK
 		handshakePacket.setFlag(PacketDef::Flag::ACK);
 		ret = handshakePacket.Serialize(buffer);
 
 		if (ret)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, IPPROTO_UDP, (const sockaddr*)targetAddress, sizeof(*targetAddress));
+			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
 		}
 
-		ret = 1;
+		state = ConnState::AUTHENTICATED;
+
+		return 1;
 	}
 
-	return ret;
+	return 1;
 }
 
 Connection::~Connection()

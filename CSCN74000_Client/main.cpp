@@ -1,8 +1,7 @@
 // Source file for main of the server
-#include "..\CSCN74000_FinalProject\packet.h"
-#include "..\CSCN74000_FinalProject\connection.h"
-#include "..\CSCN74000_FinalProject\blackbox.h"
-#include "..\CSCN74000_FinalProject\position.h"
+#include "packet.h"
+#include "connection.h"
+
 #include <thread>
 
 int main(void) {
@@ -12,11 +11,12 @@ int main(void) {
     PacketDef received;
     PacketDef toSend;
     bool shutdown;
-    char recvBuffer[MAX_PACKET_LENGTH];
+    char recvBuffer[Constants::MAX_PACKET_LENGTH];
     address rxSender;
     int addrLength;
     int bytesRead;
     PacketDef beginsHandshake;
+    int err;
     std::thread timerThread;
     bool secondElapsed;
 
@@ -24,21 +24,13 @@ int main(void) {
     shutdown = false;
     bytesRead = 0;
     addrLength = 0;
+    err = 0;
+    memset(&connectionDetails.addr, 0, sizeof(connectionDetails.addr));
+    memset(&rxSender, 0, sizeof(rxSender));
 
-    //set the connection details and creat the socket
-    connectionDetails.socket = flightConnection.createSocket();
-    connectionDetails.addr = flightConnection.createAddress(SERVER_IP, SERVER_PORT);
-    flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
-    flightConnection.setPassphrase(SECURE_PASSWORD);
-
-    beginsHandshake.setData(SECURE_PASSWORD, strlen(SECURE_PASSWORD));
-    beginsHandshake.setDest(SERVER_ID);
-    beginsHandshake.setSeqNum(0);
-    beginsHandshake.setSrc(AIRPLANE_ID);
-    beginsHandshake.setTotalCount(1);
 
     //set up timer to set variable we can use to determine if a second has elapsed
-   
+
     timerThread = std::thread([&] {
         Sleep(500);
         secondElapsed = true;
@@ -46,10 +38,26 @@ int main(void) {
         secondElapsed = false;
         });
 
+
     timerThread.detach();
 
+    
+    //set the connection details and creat the socket
+    connectionDetails.socket = flightConnection.createSocket();
+    connectionDetails.addr = flightConnection.createAddress(SERVER_PORT, SERVER_IP);
+    flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
+    flightConnection.setPassphrase(SECURE_PASSWORD);
+
+    addrLength = sizeof(rxSender);
+
+    beginsHandshake.setData(SECURE_PASSWORD, strlen(SECURE_PASSWORD));
+    beginsHandshake.setDest(SERVER_ID);
+    beginsHandshake.setSeqNum(0);
+    beginsHandshake.setSrc(AIRPLANE_ID);
+    beginsHandshake.setTotalCount(1);
+
     while (!shutdown)
-    {
+    { 
         while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
         {
             if (flightConnection.getAuthenticationState() == ConnState::UNAUTHENTICATED)
@@ -59,67 +67,90 @@ int main(void) {
             }
             else
             {
-                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
 
-                received = PacketDef(recvBuffer, bytesRead);
-                flightConnection.establishConnection(received, &rxSender);
+                err = WSAGetLastError();
+
+                if (bytesRead > 0)
+                {
+                    received = PacketDef(recvBuffer, bytesRead);
+                    flightConnection.establishConnection(received, &rxSender);
+                }
+                
             }
             
-
             if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
             {
                 Sleep(1);
             }
         }
 
-        // Final ACK?
-        bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+        // Client has now successfully been authenticated.
+        // The client will now alternate between sending black box data to the server and requests for images.
+		std::cout << " Client has been authenticated." << std::endl;
+		std::cout << " Client will now alternate between sending black box data to the server and requests for images.\n" << std::endl;
 
-        if (bytesRead > 0)
-        {
-            received = PacketDef(recvBuffer, bytesRead);
+		while (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)   // Loop
+		{
+            bool send_blackbox_data = true;
+
+            
+
+			if (send_blackbox_data) { // Send black box data
+
+                // Create buffers to hold the serialized position data and the serialized packet
+                char posBuff[Constants::MAX_PACKET_LENGTH] = { 0 };
+                char buffer [Constants::MAX_PACKET_LENGTH] = { 0 };
+                
+                // Generate a current position (currently random for proof of concept)
+                Position currentPosition;
+                currentPosition.createRandomValues();
+                int positionLength = currentPosition.Serialize(posBuff);
+				std::cout << currentPosition.latitude << " " << currentPosition.longitude << " " << currentPosition.heading << " " << currentPosition.velocity << " " << currentPosition.altitude << std::endl;
 
 
-            if (received.getFlag() == PacketDef::Flag::BB)  // The server has requested the client to send the black-box data
-            {
-                Position pos;  
-				pos.createRandomValues();                       // Create the fake position data
-				std::string data = pos.createStringToSend();    // Convert the position data to a string
-
-				toSend.setData(data.c_str(), data.length());    // Set the body and body length of the new packet
-				if (toSend.getData() == nullptr)
-				{
-					std::cout << "Error setting data, size too large or error allocating memory." << std::endl;
-                    // Throw error?
-				}
-                char* buffer = nullptr;
-                unsigned int totalSize = toSend.Serialize(buffer);
-                if(buffer != nullptr)
-				    send(connectionDetails.socket, buffer, totalSize, NULL); // Send the packet
-
-                // Check for ACK
-				bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
-				received = PacketDef(recvBuffer, bytesRead);
-                if (received.getFlag() != PacketDef::Flag::ACK)
+                // Construct the packet to send
+                PacketDef blackbox_data(AIRPLANE_ID, SERVER_ID, PacketDef::Flag::BB, 1, 1);
+                blackbox_data.setData(posBuff, positionLength);
+                blackbox_data.setCrc(0);
+                if (blackbox_data.getData() == nullptr)
                 {
-                    // Error and no ACK returned
+                    std::cout << "Error setting data: size too large or error allocating memory." << std::endl;
                 }
+
+                // Serialize the packet
+                unsigned int totalSize = blackbox_data.Serialize(buffer);
+                if (buffer != nullptr) {
+					std::cout << "Preparing to send..." << std::endl;
+
+                    // Send the packet
+					sendto(connectionDetails.socket, buffer, totalSize, 0, (struct sockaddr*)&rxSender, sizeof(rxSender));
+					std::cout << "Sent black box data." << std::endl;
+
+                    // Receive a response
+					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, 0, (struct sockaddr*)&rxSender, &addrLength);
+					std::cout << "Received response." << std::endl;
+					received = PacketDef(recvBuffer, bytesRead);
+
+					// Check for ACK
+					if (received.getFlag() != PacketDef::Flag::ACK)
+					{
+						std::cerr << "Error: No ACK received." << std::endl;
+					}
+
+                }
+
+                
+			}
+            else if (!send_blackbox_data) {   // Request an image
+
+            }
+			else {  // Error handling
+
             }
 
-			if (received.getFlag() == PacketDef::Flag::IMG) // The client has previously requested an image, and it is now being delivered.
-			{
-				// We need to store all the packets that will be used to reconstruct the image
-			}
-        }
-
-        if (secondElapsed > 1) {
-            // something?
-        }
-
-        if (bytesRead <= 0)
-        {
-            Sleep(1);
-        }
+			Sleep(1000);	// Sleep for 1 second
+		}
     }
 
     return 1;

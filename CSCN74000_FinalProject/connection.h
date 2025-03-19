@@ -1,19 +1,20 @@
-#ifndef CONNECTION_HPP
-#define CONNECTION_HPP
 
 #define CONN_PORT 34214
-#define SERVER_IP "10.144.98.141"
+#define SERVER_IP "127.0.0.1"
+#define CLIENT_IP "127.0.0.1"
 #define SERVER_PORT 34254
+#define CLIENT_PORT 44254
 #define SECURE_PASSWORD "lkjsdHJBFf987(*&%^bjsfy_SDGk187%^&$"
 
 #define SERVER_ID 723764
 #define AIRPLANE_ID 22367
-#define AIRPLANE_ID_LEN 5
-#define AUTHTRANSMISSION "22367" SECURE_PASSWORD
+#define AIRPLANE_ID_LEN 3
 
 #include <WinSock2.h>
 #include <WS2tcpip.h>
+
 #include <Windows.h>
+
 #include <string.h>
 #include <iostream>
 #include <cstdint>
@@ -37,10 +38,11 @@ typedef enum CONNECTION_STATE : int8_t
 struct ConnDetails {
 	fd socket;
 	address addr;
+	char airplaneID[AIRPLANE_ID_LEN];
 };
 
 class Connection {
-private:
+private: 
 	WSADATA wsaData;
 	ConnState state;
 	const char* passphrase;
@@ -52,7 +54,7 @@ public:
 	fd createSocket();
 	int bindTo(fd* socketFd, address* targetAddress);
 	int accept(PacketDef& handshakePacket, address* targetAddress);
-	address createAddress(iPAddress ip, port portNum);
+	address createAddress(port portNum, iPAddress ip = nullptr);
 	int establishConnection(PacketDef& handshakePacket, address* targetAddress);
 	void setConnectionDetails(fd* socketFd, address* targetAddress);
 	bool isAuthenticated();
@@ -61,5 +63,3 @@ public:
 
 	~Connection();
 };
-
-#endif
