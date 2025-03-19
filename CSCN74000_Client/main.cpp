@@ -11,7 +11,7 @@ int main(void) {
     PacketDef received;
     PacketDef toSend;
     bool shutdown;
-    char recvBuffer[MAX_PACKET_LENGTH];
+    char recvBuffer[Constants::MAX_PACKET_LENGTH];
     address rxSender;
     int addrLength;
     int bytesRead;
@@ -67,7 +67,7 @@ int main(void) {
             }
             else
             {
-                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
 
                 err = WSAGetLastError();
 
@@ -99,13 +99,15 @@ int main(void) {
 			if (send_blackbox_data) { // Send black box data
 
                 // Create buffers to hold the serialized position data and the serialized packet
-                char posBuff[MAX_PACKET_LENGTH] = { 0 };
-                char buffer [MAX_PACKET_LENGTH] = { 0 };
+                char posBuff[Constants::MAX_PACKET_LENGTH] = { 0 };
+                char buffer [Constants::MAX_PACKET_LENGTH] = { 0 };
                 
                 // Generate a current position (currently random for proof of concept)
                 Position currentPosition;
                 currentPosition.createRandomValues();
                 int positionLength = currentPosition.Serialize(posBuff);
+				std::cout << currentPosition.latitude << " " << currentPosition.longitude << " " << currentPosition.heading << " " << currentPosition.velocity << " " << currentPosition.altitude << std::endl;
+
 
                 // Construct the packet to send
                 PacketDef blackbox_data(AIRPLANE_ID, SERVER_ID, PacketDef::Flag::BB, 1, 1);
@@ -126,7 +128,7 @@ int main(void) {
 					std::cout << "Sent black box data." << std::endl;
 
                     // Receive a response
-					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, 0, (struct sockaddr*)&rxSender, &addrLength);
+					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, 0, (struct sockaddr*)&rxSender, &addrLength);
 					std::cout << "Received response." << std::endl;
 					received = PacketDef(recvBuffer, bytesRead);
 

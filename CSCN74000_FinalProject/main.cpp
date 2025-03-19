@@ -20,7 +20,7 @@ int main(void){
     PacketDef received;
     bool firstHandshakePacket = false;
 
-    serverThread(received, firstHandshakePacket, SERVER_PORT);
+    int result = serverThread(received, firstHandshakePacket, SERVER_PORT);
 }
 
 int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
@@ -30,7 +30,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
     Connection flightConnection;
     PacketDef toSend;
     bool shutdown;
-    char recvBuffer[MAX_PACKET_LENGTH];
+    char recvBuffer[Constants::MAX_PACKET_LENGTH];
     address rxSender;
     int addrLength;
     int bytesRead;
@@ -81,7 +81,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             //The packet is passed to the new thread, and that new thread will use that packet as the starting point for the handshake
             if (!firstHandshakePacket)
             {
-                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
 
                 err = WSAGetLastError();
 
@@ -105,7 +105,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
         }
 
         std::cout << "Server is now idle and waiting to receive packets..." << std::endl;
-        bytesRead = recvfrom(connectionDetails.socket, recvBuffer, MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+        bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
         if (bytesRead == -1) {
             std::cerr << "Error in recvfrom(): " << WSAGetLastError() << std::endl;
         }
@@ -121,29 +121,14 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
         {
 			// We are now receiving the black-box data from the client
             state = ServerState::RECEIVING;
-            Position pos;
-            std::string dataLat;
-            std::string dataLong;
-            std::string dataHeading;
-            std::string dataVelocity;
-            std::string dataAltitude;
-            double tempData;
+			const char* data = received.getData();
+            Position pos(data);
+            std::cout << pos.latitude << " " << pos.longitude << " " << pos.heading << " " << pos.velocity << " " << pos.altitude << std::endl;
 
-            memcpy(&tempData, received.getData(), sizeof(double));
-            dataLat = to_string(tempData);
-            memcpy(&tempData, received.getData() + sizeof(double), sizeof(double));
-            dataLong = to_string(tempData);
-            memcpy(&tempData, received.getData() + sizeof(double) + sizeof(double), sizeof(double));
-            dataHeading = to_string(tempData);
-            memcpy(&tempData, received.getData() + sizeof(double) + sizeof(double) + sizeof(double), sizeof(double));
-            dataVelocity = to_string(tempData);
-            memcpy(&tempData, received.getData() + sizeof(double) + sizeof(double) + sizeof(double) + sizeof(double), sizeof(double));
-            dataAltitude = to_string(tempData);
                                           // Create a position object from the string     
             std::string filename = to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
-            pos.writeToFile(filename, dataLat, dataLong, dataHeading, dataVelocity, dataAltitude);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
-			std::cout << "Data : " << dataLat << ", " << dataLong << ", " << dataHeading << ", " << dataVelocity << ", " << dataAltitude << std::endl;
-			std::cout << "Black-box data received and written to file." << std::endl;
+            pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
+            std::cout << "Black-box data received and written to file." << std::endl;
 
             // Send an ACK back to the client -  could potentially make one ahead of time and use it repeatedly since the body is empty, would only need to change dest?
             toSend.setSrc(SERVER_ID);
@@ -154,7 +139,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             toSend.setBodyLen(0);
             toSend.setData(nullptr, 0);
             toSend.setCrc(0);
-            char sendBuffer[MAX_PACKET_LENGTH];
+            char sendBuffer[Constants::MAX_PACKET_LENGTH];
             int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
             sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
             break;

@@ -7,11 +7,14 @@
 #include "position.h"
 using namespace std;
 
-const unsigned int MAX_HEADER_LENGTH = 21;  // This may not be accurate due to byte padding and alignment
-const unsigned int MAX_BODY_LENGTH = 256;
-const unsigned int MAX_TAIL_LENGTH = 4;
-const unsigned int MIN_PACKET_LENGTH = MAX_HEADER_LENGTH + MAX_TAIL_LENGTH;
-const unsigned int MAX_PACKET_LENGTH = MAX_HEADER_LENGTH + MAX_BODY_LENGTH + MAX_TAIL_LENGTH;
+class Constants {
+public:
+	static constexpr unsigned int MAX_HEADER_LENGTH = 21;  // This may not be accurate due to byte padding and alignment
+	static constexpr unsigned int MAX_BODY_LENGTH = 256;
+	static constexpr unsigned int MAX_TAIL_LENGTH = 4;
+	static constexpr unsigned int MIN_PACKET_LENGTH = MAX_HEADER_LENGTH + MAX_TAIL_LENGTH;
+	static constexpr unsigned int MAX_PACKET_LENGTH = MAX_HEADER_LENGTH + MAX_BODY_LENGTH + MAX_TAIL_LENGTH;
+};
 
 class PacketDef
 {
@@ -53,19 +56,7 @@ private:
 
 public:
     // Constructor and Destructor
-    PacketDef() {
-
-        PACKET.HEADER.src = '0';
-        PACKET.HEADER.dest = '0';
-        PACKET.HEADER.flag = Flag::EMPTY;
-        PACKET.HEADER.seqNum = 0;
-        PACKET.HEADER.totalCount = 0;
-        PACKET.HEADER.bodyLen = 0;
-
-        PACKET.BODY.data = nullptr;
-
-        PACKET.TAIL.crc = 0;
-    }
+	PacketDef() : PACKET{ 0, 0, Flag::EMPTY, 0, 0, 0, nullptr, 0 } {}
     PacketDef(uint32_t src, uint32_t dest, Flag flag, unsigned int seqNum, unsigned int totalCount) {
 
         PACKET.HEADER.src = src;
@@ -79,101 +70,58 @@ public:
 
         PACKET.TAIL.crc = 0;
     }
-    PacketDef(const char* rawData, int length) { // This is the "deserialize" function
+    PacketDef(const char* rawData, int length) 
+        : PACKET{ 0, 0, Flag::EMPTY, 0, 0, 0, nullptr, 0 } {
+
+        if (rawData == nullptr || length < Constants::MIN_PACKET_LENGTH) {
+            return; // Invalid input
+        }
+
         size_t offset = 0;
 
-        // Initialize default values
-        PACKET.HEADER.src = '0';    // default src/dest
-        PACKET.HEADER.dest = '0';   // default src/dest
-        PACKET.HEADER.flag = Flag::EMPTY;
-        PACKET.HEADER.seqNum = 0;
-        PACKET.HEADER.totalCount = 0;
-        PACKET.HEADER.bodyLen = 0;
-
-        PACKET.BODY.data = nullptr;
-        PACKET.TAIL.crc = 0;
-
-        // Validate input length
-        if (length < MIN_PACKET_LENGTH || length <= 0) {
-            if (PACKET.BODY.data != nullptr) {
-                delete[] PACKET.BODY.data;
-                PACKET.BODY.data = nullptr;
-            }
-            return;
-        }
-
-        // Header
-        // Src
-        if (memcpy(&PACKET.HEADER.src, rawData + offset, sizeof(PACKET.HEADER.src)) != &PACKET.HEADER.src) {
-            return; // Handle error
-        }
+        // Deserialize header fields
+        if (memcpy(&PACKET.HEADER.src, &rawData[offset], sizeof(PACKET.HEADER.src)) != &PACKET.HEADER.src) { return; }
         offset += sizeof(PACKET.HEADER.src);
 
-        // Dest
-        if (memcpy(&PACKET.HEADER.dest, rawData + offset, sizeof(PACKET.HEADER.dest)) != &PACKET.HEADER.dest) {
-            return; // Handle error
-        }
+        if (memcpy(&PACKET.HEADER.dest, &rawData[offset], sizeof(PACKET.HEADER.dest)) != &PACKET.HEADER.dest) { return; }
         offset += sizeof(PACKET.HEADER.dest);
 
-        // Flag
-        if (memcpy(&PACKET.HEADER.flag, rawData + offset, sizeof(PACKET.HEADER.flag)) != &PACKET.HEADER.flag) {
-            return; // Handle error
-        }
+        if (memcpy(&PACKET.HEADER.flag, &rawData[offset], sizeof(PACKET.HEADER.flag)) != &PACKET.HEADER.flag) { return; }
         offset += sizeof(PACKET.HEADER.flag);
 
-        // Seq. Number
-        if (memcpy(&PACKET.HEADER.seqNum, rawData + offset, sizeof(PACKET.HEADER.seqNum)) != &PACKET.HEADER.seqNum) {
-            return; // Handle error
-        }
+        if (memcpy(&PACKET.HEADER.seqNum, &rawData[offset], sizeof(PACKET.HEADER.seqNum)) != &PACKET.HEADER.seqNum) { return; }
         offset += sizeof(PACKET.HEADER.seqNum);
 
-        // Total Count
-        if (memcpy(&PACKET.HEADER.totalCount, rawData + offset, sizeof(PACKET.HEADER.totalCount)) != &PACKET.HEADER.totalCount) {
-            return; // Handle error
-        }
+        if (memcpy(&PACKET.HEADER.totalCount, &rawData[offset], sizeof(PACKET.HEADER.totalCount)) != &PACKET.HEADER.totalCount) { return; }
         offset += sizeof(PACKET.HEADER.totalCount);
 
-        // Body Length
-        if (memcpy(&PACKET.HEADER.bodyLen, rawData + offset, sizeof(PACKET.HEADER.bodyLen)) != &PACKET.HEADER.bodyLen) {
-            return; // Handle error
-        }
+        if (memcpy(&PACKET.HEADER.bodyLen, &rawData[offset], sizeof(PACKET.HEADER.bodyLen)) != &PACKET.HEADER.bodyLen) { return; }
         offset += sizeof(PACKET.HEADER.bodyLen);
 
-        // Body
-        // Data
+        // Deserialize body
         if (PACKET.HEADER.bodyLen > 0) {
-            PACKET.BODY.data = new char[PACKET.HEADER.bodyLen]; // Allocate memory for body data
+            PACKET.BODY.data = new char[PACKET.HEADER.bodyLen];
             if (PACKET.BODY.data == nullptr) {
-                return; // Handle memory allocation failure
+                return; // Memory allocation failure
             }
 
-            // Initialize memory to 0
-            if (memset(PACKET.BODY.data, 0, PACKET.HEADER.bodyLen) != PACKET.BODY.data) {
-                delete[] PACKET.BODY.data; // Clean up on failure
+            if (memcpy(PACKET.BODY.data, &rawData[offset], PACKET.HEADER.bodyLen) != PACKET.BODY.data) {
+                delete[] PACKET.BODY.data;
                 PACKET.BODY.data = nullptr;
-                return; // Handle error
-            }
-
-            // Copy body data
-            if (memcpy(PACKET.BODY.data, rawData + offset, PACKET.HEADER.bodyLen) != PACKET.BODY.data) {
-                delete[] PACKET.BODY.data; // Clean up on failure
-                PACKET.BODY.data = nullptr;
-                return; // Handle error
+                return; // memcpy failure
             }
             offset += PACKET.HEADER.bodyLen;
         }
 
-        // Tail
-        // CRC
-        if (memcpy(&PACKET.TAIL.crc, rawData + offset, sizeof(PACKET.TAIL.crc)) != &PACKET.TAIL.crc) {
+        // Deserialize tail
+        if (memcpy(&PACKET.TAIL.crc, &rawData[offset], sizeof(PACKET.TAIL.crc)) != &PACKET.TAIL.crc) {
             if (PACKET.BODY.data != nullptr) {
-                delete[] PACKET.BODY.data; // Clean up on failure
+                delete[] PACKET.BODY.data;
                 PACKET.BODY.data = nullptr;
             }
-            return; // Handle error
+            return; // memcpy failure
         }
-
-        // If a failure, set everything to the defaults and return
+		return; // Success
     }
     ~PacketDef() {
         if (PACKET.BODY.data != nullptr)
@@ -201,37 +149,42 @@ public:
 
     // Special getter and setter due to allocated memory
     int setData(const char* data, size_t bytes) {
+        if (data == nullptr || bytes == 0) {
+            return ERR; // Invalid input
+        }
 
-        // Delete old data if it is not already nullptr
-        if (PACKET.BODY.data) {
-            delete[]PACKET.BODY.data;
+        // Delete old data if it exists
+        if (PACKET.BODY.data != nullptr) {
+            delete[] PACKET.BODY.data;
             PACKET.BODY.data = nullptr;
         }
 
-        if (bytes > MAX_BODY_LENGTH) {
-            return ERR;
+        if (bytes > Constants::MAX_BODY_LENGTH) {
+            return ERR; // Data too large
         }
 
-        // If no data, set body length to 0
-        if (bytes <= 0) {
-            PACKET.HEADER.bodyLen = 0;
-            return ERR;
-        }
-
-        // Allocate memory for new data and check for failures. If failure, clean up.
+        // Allocate memory for new data
         PACKET.BODY.data = new char[bytes];
+        if (PACKET.BODY.data == nullptr) {
+            return ERR; // Memory allocation failure
+        }
+
+        // Initialize memory to 0
         if (memset(PACKET.BODY.data, 0, bytes) != PACKET.BODY.data) {
             delete[] PACKET.BODY.data;
             PACKET.BODY.data = nullptr;
-            return ERR;
+            return ERR; // memset failure
         }
+
+        // Copy data
         if (memcpy(PACKET.BODY.data, data, bytes) != PACKET.BODY.data) {
             delete[] PACKET.BODY.data;
             PACKET.BODY.data = nullptr;
-            return ERR;
+            return ERR; // memcpy failure
         }
 
-        PACKET.HEADER.bodyLen = (unsigned int)bytes;
+        PACKET.HEADER.bodyLen = static_cast<unsigned int>(bytes);
+        return SUCC; // Success
     }
     char* getData() const { return PACKET.BODY.data; }
 
@@ -245,77 +198,59 @@ public:
     /// <param name="outBuffer"></param>
     /// <returns>The size of the packet, or -1 if an error occured.</returns>
     int Serialize(char* outBuffer) {
+        if (outBuffer == nullptr) {
+            return ERR; // Invalid output buffer
+        }
 
-        int bytesSerialized = 0;
-        size_t offset = 0; // How far "over" we need to offset our memcpy by when serializing
+        size_t offset = 0;
 
         // Calculate the size of the entire packet
-        int packetSize = sizeof(PACKET.HEADER.src) + sizeof(PACKET.HEADER.dest) + sizeof(PACKET.HEADER.flag) + sizeof(PACKET.HEADER.seqNum) + sizeof(PACKET.HEADER.totalCount) + sizeof(PACKET.HEADER.bodyLen) +
-            PACKET.HEADER.bodyLen +
-            sizeof(PACKET.TAIL.crc);
+        int packetSize = sizeof(PACKET.HEADER.src) + sizeof(PACKET.HEADER.dest) + sizeof(PACKET.HEADER.flag) +
+            sizeof(PACKET.HEADER.seqNum) + sizeof(PACKET.HEADER.totalCount) + sizeof(PACKET.HEADER.bodyLen) +
+            PACKET.HEADER.bodyLen + sizeof(PACKET.TAIL.crc);
 
-        if (packetSize > MAX_PACKET_LENGTH)
-            return ERR;
+        if (packetSize > Constants::MAX_PACKET_LENGTH) {
+            return ERR; // Packet too large
+        }
 
-        if (memset(outBuffer, 0, MAX_PACKET_LENGTH) != outBuffer) { return ERR; }
+        // Initialize the buffer to 0
+        if (memset(outBuffer, 0, Constants::MAX_PACKET_LENGTH) != outBuffer) {
+            return ERR; // memset failure
+        }
 
-        // Src
-        if (memcpy(outBuffer + offset, &PACKET.HEADER.src, sizeof(PACKET.HEADER.src)) != outBuffer + offset) { return ERR; }
+        // Serialize header fields
+        if (memcpy(&outBuffer[offset], &PACKET.HEADER.src, sizeof(PACKET.HEADER.src)) != &outBuffer[offset]) { return ERR; }
         offset += sizeof(PACKET.HEADER.src);
-        // Dest
-        if (memcpy(outBuffer + offset, &PACKET.HEADER.dest, sizeof(PACKET.HEADER.dest)) != outBuffer + offset) { return ERR; }
+
+        if (memcpy(&outBuffer[offset], &PACKET.HEADER.dest, sizeof(PACKET.HEADER.dest)) != &outBuffer[offset]) { return ERR; }
         offset += sizeof(PACKET.HEADER.dest);
-        // Flag
-        if (memcpy(outBuffer + offset, &PACKET.HEADER.flag, sizeof(PACKET.HEADER.flag)) != outBuffer + offset) { return ERR; }
+
+        if (memcpy(&outBuffer[offset], &PACKET.HEADER.flag, sizeof(PACKET.HEADER.flag)) != &outBuffer[offset]) { return ERR; }
         offset += sizeof(PACKET.HEADER.flag);
-        // Seq. Num
-        if (memcpy(outBuffer + offset, &PACKET.HEADER.seqNum, sizeof(PACKET.HEADER.seqNum)) != outBuffer + offset) { return ERR; }
+
+        if (memcpy(&outBuffer[offset], &PACKET.HEADER.seqNum, sizeof(PACKET.HEADER.seqNum)) != &outBuffer[offset]) { return ERR; }
         offset += sizeof(PACKET.HEADER.seqNum);
-        // Total Count
-        if (memcpy(outBuffer + offset, &PACKET.HEADER.totalCount, sizeof(PACKET.HEADER.totalCount)) != outBuffer + offset) { return ERR; }
+
+        if (memcpy(&outBuffer[offset], &PACKET.HEADER.totalCount, sizeof(PACKET.HEADER.totalCount)) != &outBuffer[offset]) { return ERR; }
         offset += sizeof(PACKET.HEADER.totalCount);
-        // Body Length
-        if (memcpy(outBuffer + offset, &PACKET.HEADER.bodyLen, sizeof(PACKET.HEADER.bodyLen)) != outBuffer + offset) { return ERR; }
+
+        if (memcpy(&outBuffer[offset], &PACKET.HEADER.bodyLen, sizeof(PACKET.HEADER.bodyLen)) != &outBuffer[offset]) { return ERR; }
         offset += sizeof(PACKET.HEADER.bodyLen);
 
-        // Body
-        if (memcpy(outBuffer + offset, PACKET.BODY.data, PACKET.HEADER.bodyLen) != outBuffer + offset) { return ERR; }
+        // Serialize body
+        if (memcpy(&outBuffer[offset], PACKET.BODY.data, PACKET.HEADER.bodyLen) != &outBuffer[offset]) { return ERR; }
         offset += PACKET.HEADER.bodyLen;
 
-        // CRC
-        if (memcpy(outBuffer + offset, &PACKET.TAIL.crc, sizeof(PACKET.TAIL.crc)) != outBuffer + offset) { return ERR; }
+        // Serialize tail
+        if (memcpy(&outBuffer[offset], &PACKET.TAIL.crc, sizeof(PACKET.TAIL.crc)) != &outBuffer[offset]) { return ERR; }
 
-        return packetSize;
+        return packetSize; // Success
     }
 
     // Extra Functions
-    void display() const {
-        cout << "Packet Information:" << endl;
-        cout << "-------------------" << endl;
-        cout << "Source: " << hex << PACKET.HEADER.src << dec << endl;
-        cout << "Destination: " << hex << PACKET.HEADER.dest << dec << endl;
-        cout << "Flag: " << static_cast<int>(PACKET.HEADER.flag) << endl;
-        cout << "Sequence Number: " << PACKET.HEADER.seqNum << endl;
-        cout << "Total Count: " << PACKET.HEADER.totalCount << endl;
-        cout << "Body Length: " << PACKET.HEADER.bodyLen << endl;
-
-        cout << "Data: ";
-        if (PACKET.BODY.data && PACKET.HEADER.bodyLen > 0) {
-            for (unsigned int i = 0; i < PACKET.HEADER.bodyLen; ++i) {
-                cout << PACKET.BODY.data[i];
-            }
-        }
-        else {
-            cout << "(empty)";
-        }
-        cout << endl;
-
-        cout << "CRC: " << PACKET.TAIL.crc << endl;
-    }
-
     int operator=(const PacketDef& other) {
         if (this == &other) {
-            return SUCC;
+            return SUCC; // Self-assignment
         }
 
         // Copy header fields

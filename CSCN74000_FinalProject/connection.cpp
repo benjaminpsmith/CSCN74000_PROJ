@@ -2,8 +2,13 @@
 
 Connection::Connection()
 {
+	state = ConnState::UNAUTHENTICATED;
 	WORD version = MAKEWORD(2, 2);
 	int err = WSAStartup(version, &wsaData);
+	if (err)
+	{
+		perror("Error starting WSA.\n");
+	}
 
 	this->connectionDetails.socket = 0;
 	this->passphrase = nullptr;
@@ -48,7 +53,7 @@ int Connection::establishConnection(PacketDef& handshakePacket, address* targetA
 	uint8_t flags;
 	int authBit;
 	int ackBit;
-	char buffer[MAX_PACKET_LENGTH];
+	char buffer[Constants::MAX_PACKET_LENGTH];
 
 	ret = 0;
 	flags = handshakePacket.getFlag();
@@ -134,7 +139,7 @@ int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
 	char* authData;
 	uint32_t airplaneID;
 
-	char buffer[MAX_PACKET_LENGTH];
+	char buffer[Constants::MAX_PACKET_LENGTH];
 
 	airplaneID = 0;
 	authData = nullptr;
