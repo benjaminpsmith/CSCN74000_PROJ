@@ -15,6 +15,7 @@ public:
     double altitude = 0.0; // Metres
 
 	const int ERR = -1;
+    const std::string error_msg = "An error has occured." ;
 
 public:
     // Constructors
@@ -24,49 +25,48 @@ public:
     }
     Position(const char* rawData) {
         if (rawData == nullptr) {
-            throw std::invalid_argument("Raw data buffer is null");
+            throw std::invalid_argument(error_msg);
         }
 
         size_t offset = 0;
 
         // Deserialize latitude
         if (std::memcpy(&latitude, &rawData[offset], sizeof(double)) != &latitude) {
-            throw std::runtime_error("memcpy failed for latitude");
+            throw std::runtime_error(error_msg);
         }
         offset += sizeof(double);
 
         // Deserialize longitude
         if (std::memcpy(&longitude, &rawData[offset], sizeof(double)) != &longitude) {
-            throw std::runtime_error("memcpy failed for longitude");
+            throw std::runtime_error(error_msg);
         }
         offset += sizeof(double);
 
         // Deserialize heading
         if (std::memcpy(&heading, &rawData[offset], sizeof(double)) != &heading) {
-            throw std::runtime_error("memcpy failed for heading");
+            throw std::runtime_error(error_msg);
         }
         offset += sizeof(double);
 
         // Deserialize velocity
         if (std::memcpy(&velocity, &rawData[offset], sizeof(double)) != &velocity) {
-            throw std::runtime_error("memcpy failed for velocity");
+            throw std::runtime_error(error_msg);
         }
         offset += sizeof(double);
 
         // Deserialize altitude
         if (std::memcpy(&altitude, &rawData[offset], sizeof(double)) != &altitude) {
-            throw std::runtime_error("memcpy failed for altitude");
+            throw std::runtime_error(error_msg);
         }
     }
 
     // File IO Functions
-    bool writeToFile(std::string filePath) {
+    bool writeToFile(const std::string& filePath) {
 
         std::ofstream file;
         file.open(filePath, std::ios::app);
         if (file.is_open()) {
             std::ostringstream oss;
-            oss.precision(10);
 			oss << latitude << "," << longitude << "," << heading << "," << velocity << "," << altitude;
             file << oss.str() << std::endl;
             file.close();
