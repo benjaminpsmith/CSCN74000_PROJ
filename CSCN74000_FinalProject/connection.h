@@ -16,6 +16,7 @@ namespace ConnectionData {
 #define SERVER_PORT 34254
 #define CLIENT_PORT 44254
 #define SECURE_PASSWORD "lkjsdHJBFf987(*&%^bjsfy_SDGk187%^&$"
+#define SECURE_PASSWORD_LEN 36
 
 #define SERVER_ID 723764
 #define AIRPLANE_ID 22367

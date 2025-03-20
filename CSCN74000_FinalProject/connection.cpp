@@ -74,7 +74,7 @@ namespace ConnectionData {
 
 			if (ret)
 			{
-				ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
+				ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 				int err = WSAGetLastError();
 			}
 			state = ConnState::HANDSHAKING;
@@ -88,7 +88,7 @@ namespace ConnectionData {
 
 			if (ret)
 			{
-				ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
+				ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 			}
 
 			return 1;
@@ -126,14 +126,16 @@ namespace ConnectionData {
 
 	int Connection::bindTo(fd* socketFd, address* targetAddress)
 	{
-		if (bind(*socketFd, (struct sockaddr*)targetAddress, sizeof(sockaddr)) < 0)
+		int retValue = 1;
+
+		if (bind(*socketFd, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(sockaddr)) < 0)
 		{
 			int err = WSAGetLastError();
 			perror("Error binding socket.\n");
-			return 0;
+			retValue = 0;
 		}
 
-		return 1;
+		return retValue;
 	}
 
 	int Connection::accept(PacketData::PacketDef& handshakePacket, address* targetAddress)
@@ -176,7 +178,7 @@ namespace ConnectionData {
 
 				if (ret)
 				{
-					ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
+					ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 				}
 				airplaneID = handshakePacket.getSrc();
 				memcpy(this->connectionDetails.airplaneID, &airplaneID, 3);
@@ -197,7 +199,7 @@ namespace ConnectionData {
 
 			if (ret)
 			{
-				ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
+				ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 			}
 
 			state = ConnState::AUTHENTICATED;

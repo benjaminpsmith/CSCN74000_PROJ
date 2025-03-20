@@ -58,7 +58,7 @@ int main(void) {
 
     addrLength = sizeof(rxSender);
 
-    beginsHandshake.setData(SECURE_PASSWORD, strlen(SECURE_PASSWORD));
+    beginsHandshake.setData(SECURE_PASSWORD, SECURE_PASSWORD_LEN);
     beginsHandshake.setDest(SERVER_ID);
     beginsHandshake.setSeqNum(0);
     beginsHandshake.setSrc(AIRPLANE_ID);
@@ -75,7 +75,7 @@ int main(void) {
             }
             else
             {
-                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
 
                 err = WSAGetLastError();
 
@@ -132,11 +132,11 @@ int main(void) {
 					std::cout << "Preparing to send..." << std::endl;
 
                     // Send the packet
-					sendto(connectionDetails.socket, buffer, totalSize, 0, (struct sockaddr*)&rxSender, sizeof(rxSender));
+					sendto(connectionDetails.socket, buffer, totalSize, 0, reinterpret_cast<struct sockaddr*>(&rxSender), sizeof(rxSender));
 					std::cout << "Sent black box data." << std::endl;
 
                     // Receive a response
-					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, 0, (struct sockaddr*)&rxSender, &addrLength);
+					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, 0, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
 					std::cout << "Received response." << std::endl;
 					received = PacketData::PacketDef(recvBuffer, bytesRead);
 
