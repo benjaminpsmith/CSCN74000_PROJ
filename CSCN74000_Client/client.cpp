@@ -27,8 +27,14 @@ int main(void) {
     bytesRead = 0;
     addrLength = 0;
     err = 0;
-    memset(&connectionDetails.addr, 0, sizeof(connectionDetails.addr));
-    memset(&rxSender, 0, sizeof(rxSender));
+	if (memset(&connectionDetails.addr, 0, sizeof(connectionDetails.addr)) != &connectionDetails.addr)
+	{
+		std::cerr << "Error initializing connection details." << std::endl;
+	}
+	if (memset(&rxSender, 0, sizeof(rxSender)) != &rxSender)
+	{
+		std::cerr << "Error initializing rxSender." << std::endl;
+	}
 
 
     //set up timer to set variable we can use to determine if a second has elapsed
@@ -65,7 +71,7 @@ int main(void) {
             if (flightConnection.getAuthenticationState() == ConnectionData::ConnState::UNAUTHENTICATED)
             {
                 //start the connection handshake
-                flightConnection.establishConnection(beginsHandshake, &connectionDetails.addr);
+                int retValue = flightConnection.establishConnection(beginsHandshake, &connectionDetails.addr);
             }
             else
             {
@@ -121,8 +127,8 @@ int main(void) {
                 }
 
                 // Serialize the packet
-                unsigned int totalSize = blackbox_data.Serialize(buffer);
                 if (buffer != nullptr) {
+                    unsigned int totalSize = blackbox_data.Serialize(buffer);
 					std::cout << "Preparing to send..." << std::endl;
 
                     // Send the packet
