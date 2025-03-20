@@ -74,9 +74,9 @@ int main(void) {
             {
                 //start the connection handshake
                 int retValue = flightConnection.establishConnection(beginsHandshake, &connectionDetails.addr);
-                if (retValue == 1)
+                if (retValue != 1)
                 {
-                    std::cout << "Handshake begun." << std::endl;
+					std::cerr << "Error establishing connection." << std::endl;
                 }
             }
             else
@@ -89,9 +89,9 @@ int main(void) {
                 {
                     received = PacketData::PacketDef(recvBuffer, bytesRead);
                     int connectionSuccess = flightConnection.establishConnection(received, &rxSender);
-                    if (connectionSuccess == 1)
+                    if (connectionSuccess != 1)
                     {
-                        std::cout << "Handshake continued.." << std::endl;
+						std::cerr << "Error establishing connection." << std::endl;
                     }
                 }
                 
