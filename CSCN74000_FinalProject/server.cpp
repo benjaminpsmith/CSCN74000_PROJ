@@ -70,7 +70,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
     flightConnection.setPassphrase(SECURE_PASSWORD);
 
-    flightConnection.bindTo(&connectionDetails.socket, &connectionDetails.addr);
+    int bindToRetVal = flightConnection.bindTo(&connectionDetails.socket, &connectionDetails.addr);
 
     addrLength = sizeof(rxSender);
 
@@ -89,7 +89,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             //The packet is passed to the new thread, and that new thread will use that packet as the starting point for the handshake
             if (!firstHandshakePacket)
             {
-                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
 
                 err = WSAGetLastError();
 
@@ -113,7 +113,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         }
 
         std::cout << "Server is now idle and waiting to receive packets..." << std::endl;
-        bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+        bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
         if (bytesRead == -1) {
             std::cerr << "Error in recvfrom(): " << WSAGetLastError() << std::endl;
         }
@@ -156,7 +156,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             toSend.setCrc(0);
             char sendBuffer[Constants::MAX_PACKET_LENGTH];
             int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
-            int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
+            int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
             break;
         }
         case PacketDef::Flag::IMG:

@@ -103,7 +103,7 @@ namespace ConnectionData {
 		return 1;
 	}
 
-	void Connection::setConnectionDetails(fd* socketFd, address* targetAddress)
+	void Connection::setConnectionDetails(const fd* socketFd, const address* targetAddress)
 	{
 		this->connectionDetails.socket = *socketFd;
 		this->connectionDetails.addr = *targetAddress;
@@ -131,7 +131,7 @@ namespace ConnectionData {
 		if (bind(*socketFd, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(sockaddr)) < 0)
 		{
 			int err = WSAGetLastError();
-			perror("Error binding socket.\n");
+			std::cerr << "Error binding to socket." << std::endl;
 			retValue = 0;
 		}
 
@@ -181,7 +181,10 @@ namespace ConnectionData {
 					ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 				}
 				airplaneID = handshakePacket.getSrc();
-				memcpy(this->connectionDetails.airplaneID, &airplaneID, 3);
+				if (memcpy(this->connectionDetails.airplaneID, &airplaneID, 3) != this->connectionDetails.airplaneID)
+				{
+					std::cerr << "Error copying airplane ID." << std::endl;
+				}
 
 				state = ConnState::HANDSHAKING;
 			}

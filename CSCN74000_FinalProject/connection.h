@@ -57,7 +57,7 @@ namespace ConnectionData {
 		int accept(PacketData::PacketDef& handshakePacket, address* targetAddress);
 		address createAddress(port portNum, iPAddress ip = nullptr);
 		int establishConnection(PacketData::PacketDef& handshakePacket, address* targetAddress);
-		void setConnectionDetails(fd* socketFd, address* targetAddress);
+		void setConnectionDetails(const fd* socketFd, const address* targetAddress);
 		bool isAuthenticated();
 		ConnState getAuthenticationState();
 		void setPassphrase(const char* passphrase);

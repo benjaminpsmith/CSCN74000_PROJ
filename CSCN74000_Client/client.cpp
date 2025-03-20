@@ -58,7 +58,9 @@ int main(void) {
 
     addrLength = sizeof(rxSender);
 
-    beginsHandshake.setData(SECURE_PASSWORD, SECURE_PASSWORD_LEN);
+    if (beginsHandshake.setData(SECURE_PASSWORD, SECURE_PASSWORD_LEN) == -1) {
+		std::cerr << "Error setting data: size too large or error allocating memory." << std::endl;
+    }
     beginsHandshake.setDest(SERVER_ID);
     beginsHandshake.setSeqNum(0);
     beginsHandshake.setSrc(AIRPLANE_ID);
@@ -82,7 +84,11 @@ int main(void) {
                 if (bytesRead > 0)
                 {
                     received = PacketData::PacketDef(recvBuffer, bytesRead);
-                    flightConnection.establishConnection(received, &rxSender);
+                    int connectionSuccess = flightConnection.establishConnection(received, &rxSender);
+                    if (connectionSuccess == 1)
+                    {
+                        std::cout << "Client has been authenticated." << std::endl;
+                    }
                 }
                 
             }
@@ -119,7 +125,9 @@ int main(void) {
 
                 // Construct the packet to send
                 PacketData::PacketDef blackbox_data(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::BB, 1, 1);
-                blackbox_data.setData(posBuff, positionLength);
+                if (blackbox_data.setData(posBuff, positionLength) == -1) {
+					std::cerr << "Error setting data: size too large or error allocating memory." << std::endl;
+                }
                 blackbox_data.setCrc(0);
                 if (blackbox_data.getData() == nullptr)
                 {
@@ -132,7 +140,7 @@ int main(void) {
 					std::cout << "Preparing to send..." << std::endl;
 
                     // Send the packet
-					sendto(connectionDetails.socket, buffer, totalSize, 0, reinterpret_cast<struct sockaddr*>(&rxSender), sizeof(rxSender));
+					int sendToRetVale = sendto(connectionDetails.socket, buffer, totalSize, 0, reinterpret_cast<struct sockaddr*>(&rxSender), sizeof(rxSender));
 					std::cout << "Sent black box data." << std::endl;
 
                     // Receive a response
