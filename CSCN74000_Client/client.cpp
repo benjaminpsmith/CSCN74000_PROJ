@@ -4,21 +4,20 @@
 
 #include <thread>
 
-using namespace PositionData;
-using namespace PacketData;
+// using namespace ;
 
 int main(void) {
 
-    ConnDetails connectionDetails;
-    Connection flightConnection;
-    PacketDef received;
-    PacketDef toSend;
+    ConnectionData::ConnDetails connectionDetails;
+    ConnectionData::Connection flightConnection;
+    PacketData::PacketDef received;
+    PacketData::PacketDef toSend;
     bool shutdown;
-    char recvBuffer[Constants::MAX_PACKET_LENGTH];
-    address rxSender;
+    char recvBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
+    ConnectionData::address rxSender;
     int addrLength;
     int bytesRead;
-    PacketDef beginsHandshake;
+    PacketData::PacketDef beginsHandshake;
     int err;
     std::thread timerThread;
     bool secondElapsed;
@@ -41,7 +40,7 @@ int main(void) {
         secondElapsed = false;
         });
 
-
+    
     timerThread.detach();
 
     
@@ -61,9 +60,9 @@ int main(void) {
 
     while (!shutdown)
     { 
-        while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
+        while (flightConnection.getAuthenticationState() != ConnectionData::ConnState::AUTHENTICATED)
         {
-            if (flightConnection.getAuthenticationState() == ConnState::UNAUTHENTICATED)
+            if (flightConnection.getAuthenticationState() == ConnectionData::ConnState::UNAUTHENTICATED)
             {
                 //start the connection handshake
                 flightConnection.establishConnection(beginsHandshake, &connectionDetails.addr);
@@ -82,7 +81,7 @@ int main(void) {
                 
             }
             
-            if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
+            if (flightConnection.getAuthenticationState() != ConnectionData::ConnState::AUTHENTICATED)
             {
                 Sleep(1);
             }
@@ -93,7 +92,7 @@ int main(void) {
 		std::cout << " Client has been authenticated." << std::endl;
 		std::cout << " Client will now alternate between sending black box data to the server and requests for images.\n" << std::endl;
 
-		while (flightConnection.getAuthenticationState() == ConnState::AUTHENTICATED)   // Loop
+		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED)   // Loop
 		{
             bool send_blackbox_data = true;
 
@@ -106,7 +105,7 @@ int main(void) {
                 char buffer [Constants::MAX_PACKET_LENGTH] = { 0 };
                 
                 // Generate a current position (currently random for proof of concept)
-                Position currentPosition;
+                PositionData::Position currentPosition;
                 currentPosition.createRandomValues();
                 int positionLength = currentPosition.Serialize(posBuff);
 				std::cout << currentPosition.latitude << " " << currentPosition.longitude << " " << currentPosition.heading << " " << currentPosition.velocity << " " << currentPosition.altitude << std::endl;
