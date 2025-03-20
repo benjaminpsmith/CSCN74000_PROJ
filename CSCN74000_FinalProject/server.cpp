@@ -25,7 +25,7 @@ namespace Server {
 }
 
 int main(void){
-    PacketDef received;
+    PacketData::PacketDef received;
     bool firstHandshakePacket = false;
 
     int result = Server::serverThread(received, firstHandshakePacket, SERVER_PORT);

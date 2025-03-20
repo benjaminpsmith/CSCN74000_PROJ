@@ -49,13 +49,13 @@ namespace ConnectionData {
 		return connectionAddress;
 	}
 
-	int Connection::establishConnection(PacketDef& handshakePacket, address* targetAddress)
+	int Connection::establishConnection(PacketData::PacketDef& handshakePacket, address* targetAddress)
 	{
 		int ret;
 		uint8_t flags;
 		int authBit;
 		int ackBit;
-		char buffer[Constants::MAX_PACKET_LENGTH];
+		char buffer[PacketData::Constants::MAX_PACKET_LENGTH];
 
 		ret = 0;
 		flags = handshakePacket.getFlag();
@@ -65,7 +65,7 @@ namespace ConnectionData {
 
 		if (state == ConnState::UNAUTHENTICATED && !authBit)
 		{
-			handshakePacket.setFlag(PacketDef::Flag::AUTH);
+			handshakePacket.setFlag(PacketData::PacketDef::Flag::AUTH);
 			ret = handshakePacket.Serialize(buffer);
 
 			if (ret)
@@ -79,7 +79,7 @@ namespace ConnectionData {
 
 		if (state == ConnState::HANDSHAKING && authBit && ackBit)
 		{
-			handshakePacket.setFlag(PacketDef::Flag::ACK);
+			handshakePacket.setFlag(PacketData::PacketDef::Flag::ACK);
 			ret = handshakePacket.Serialize(buffer);
 
 			if (ret)
@@ -132,7 +132,7 @@ namespace ConnectionData {
 		return 1;
 	}
 
-	int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
+	int Connection::accept(PacketData::PacketDef& handshakePacket, address* targetAddress)
 	{
 		int ret;
 		uint8_t flags;
@@ -141,7 +141,7 @@ namespace ConnectionData {
 		char* authData;
 		uint32_t airplaneID;
 
-		char buffer[Constants::MAX_PACKET_LENGTH];
+		char buffer[PacketData::Constants::MAX_PACKET_LENGTH];
 
 		airplaneID = 0;
 		authData = nullptr;
@@ -167,7 +167,7 @@ namespace ConnectionData {
 			if (!ret)
 			{
 				//send AUTH + ACK
-				handshakePacket.setFlag(PacketDef::Flag::AUTH_ACK);
+				handshakePacket.setFlag(PacketData::PacketDef::Flag::AUTH_ACK);
 				ret = handshakePacket.Serialize(buffer);
 
 				if (ret)
@@ -188,7 +188,7 @@ namespace ConnectionData {
 		{
 
 			//send ACK
-			handshakePacket.setFlag(PacketDef::Flag::ACK);
+			handshakePacket.setFlag(PacketData::PacketDef::Flag::ACK);
 			ret = handshakePacket.Serialize(buffer);
 
 			if (ret)

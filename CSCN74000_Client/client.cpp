@@ -69,13 +69,13 @@ int main(void) {
             }
             else
             {
-                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
+                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, (struct sockaddr*)&rxSender, &addrLength);
 
                 err = WSAGetLastError();
 
                 if (bytesRead > 0)
                 {
-                    received = PacketDef(recvBuffer, bytesRead);
+                    received = PacketData::PacketDef(recvBuffer, bytesRead);
                     flightConnection.establishConnection(received, &rxSender);
                 }
                 
@@ -101,8 +101,8 @@ int main(void) {
 			if (send_blackbox_data) { // Send black box data
 
                 // Create buffers to hold the serialized position data and the serialized packet
-                char posBuff[Constants::MAX_PACKET_LENGTH] = { 0 };
-                char buffer [Constants::MAX_PACKET_LENGTH] = { 0 };
+                char posBuff[PacketData::Constants::MAX_PACKET_LENGTH] = { 0 };
+                char buffer [PacketData::Constants::MAX_PACKET_LENGTH] = { 0 };
                 
                 // Generate a current position (currently random for proof of concept)
                 PositionData::Position currentPosition;
@@ -112,7 +112,7 @@ int main(void) {
 
 
                 // Construct the packet to send
-                PacketDef blackbox_data(AIRPLANE_ID, SERVER_ID, PacketDef::Flag::BB, 1, 1);
+                PacketData::PacketDef blackbox_data(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::BB, 1, 1);
                 blackbox_data.setData(posBuff, positionLength);
                 blackbox_data.setCrc(0);
                 if (blackbox_data.getData() == nullptr)
@@ -130,12 +130,12 @@ int main(void) {
 					std::cout << "Sent black box data." << std::endl;
 
                     // Receive a response
-					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, Constants::MAX_PACKET_LENGTH, 0, (struct sockaddr*)&rxSender, &addrLength);
+					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, 0, (struct sockaddr*)&rxSender, &addrLength);
 					std::cout << "Received response." << std::endl;
-					received = PacketDef(recvBuffer, bytesRead);
+					received = PacketData::PacketDef(recvBuffer, bytesRead);
 
 					// Check for ACK
-					if (received.getFlag() != PacketDef::Flag::ACK)
+					if (received.getFlag() != PacketData::PacketDef::Flag::ACK)
 					{
 						std::cerr << "Error: No ACK received." << std::endl;
 					}
