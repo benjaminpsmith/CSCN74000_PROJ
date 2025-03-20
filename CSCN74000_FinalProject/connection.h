@@ -18,8 +18,9 @@
 #include <string.h>
 #include <iostream>
 #include <cstdint>
-#include <string.h>
 #include "packet.h"
+
+using namespace PacketData;
 
 #pragma comment(lib, "ws2_32")
 

@@ -5,6 +5,9 @@
 
 #define BLACKBOX_FILE "_blackbox.csv"
 
+using namespace PositionData;
+using namespace PacketData;
+
 typedef enum SERVER_STATE : int8_t
 {
     AWAITING_AUTH,
@@ -126,7 +129,7 @@ int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort)
             std::cout << pos.latitude << " " << pos.longitude << " " << pos.heading << " " << pos.velocity << " " << pos.altitude << std::endl;
 
                                           // Create a position object from the string     
-            std::string filename = to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
+            std::string filename = std::to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
             pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
             std::cout << "Black-box data received and written to file." << std::endl;
 

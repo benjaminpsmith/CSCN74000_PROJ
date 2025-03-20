@@ -4,6 +4,9 @@
 
 #include <thread>
 
+using namespace PositionData;
+using namespace PacketData;
+
 int main(void) {
 
     ConnDetails connectionDetails;

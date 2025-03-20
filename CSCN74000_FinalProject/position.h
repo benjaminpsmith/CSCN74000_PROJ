@@ -5,142 +5,145 @@
 #include <cstring>
 #include <stdexcept>
 
-class Position {
-public:
-    static constexpr unsigned int ATTRIBUTE_COUNT = 5;
-    double latitude = 0.0;
-    double longitude = 0.0;
-    double heading = 0.0;
-    double velocity = 0.0; // Knots
-    double altitude = 0.0; // Metres
+namespace PositionData {
 
-	const int ERR = -1;
-    const std::string error_msg = "An error has occured." ;
+    class Position {
+    public:
+        static constexpr unsigned int ATTRIBUTE_COUNT = 5;
+        double latitude = 0.0;
+        double longitude = 0.0;
+        double heading = 0.0;
+        double velocity = 0.0; // Knots
+        double altitude = 0.0; // Metres
 
-public:
-    // Constructors
-    Position() = default;
-    Position(double lat, double lon, double hdg, double vel, double alt)
-        : latitude(lat), longitude(lon), heading(hdg), velocity(vel), altitude(alt) {
-    }
-    Position(const char* rawData) {
-        if (rawData == nullptr) {
-            throw std::invalid_argument(error_msg);
+        const int ERR = -1;
+        const std::string error_msg = "An error has occured.";
+
+    public:
+        // Constructors
+        Position() = default;
+        Position(double lat, double lon, double hdg, double vel, double alt)
+            : latitude(lat), longitude(lon), heading(hdg), velocity(vel), altitude(alt) {
+        }
+        Position(const char* rawData) {
+            if (rawData == nullptr) {
+                throw std::invalid_argument(error_msg);
+            }
+
+            size_t offset = 0;
+
+            // Deserialize latitude
+            if (std::memcpy(&latitude, &rawData[offset], sizeof(double)) != &latitude) {
+                throw std::runtime_error(error_msg);
+            }
+            offset += sizeof(double);
+
+            // Deserialize longitude
+            if (std::memcpy(&longitude, &rawData[offset], sizeof(double)) != &longitude) {
+                throw std::runtime_error(error_msg);
+            }
+            offset += sizeof(double);
+
+            // Deserialize heading
+            if (std::memcpy(&heading, &rawData[offset], sizeof(double)) != &heading) {
+                throw std::runtime_error(error_msg);
+            }
+            offset += sizeof(double);
+
+            // Deserialize velocity
+            if (std::memcpy(&velocity, &rawData[offset], sizeof(double)) != &velocity) {
+                throw std::runtime_error(error_msg);
+            }
+            offset += sizeof(double);
+
+            // Deserialize altitude
+            if (std::memcpy(&altitude, &rawData[offset], sizeof(double)) != &altitude) {
+                throw std::runtime_error(error_msg);
+            }
         }
 
-        size_t offset = 0;
+        // File IO Functions
+        bool writeToFile(const std::string& filePath) {
 
-        // Deserialize latitude
-        if (std::memcpy(&latitude, &rawData[offset], sizeof(double)) != &latitude) {
-            throw std::runtime_error(error_msg);
-        }
-        offset += sizeof(double);
+            bool success = true;
 
-        // Deserialize longitude
-        if (std::memcpy(&longitude, &rawData[offset], sizeof(double)) != &longitude) {
-            throw std::runtime_error(error_msg);
-        }
-        offset += sizeof(double);
+            std::ofstream file;
+            file.open(filePath, std::ios::app);
+            if (file.is_open()) {
+                std::ostringstream oss;
+                oss << latitude << "," << longitude << "," << heading << "," << velocity << "," << altitude;
+                file << oss.str() << std::endl;
+                file.close();
+            }
+            else {
+                success = false;
+            }
 
-        // Deserialize heading
-        if (std::memcpy(&heading, &rawData[offset], sizeof(double)) != &heading) {
-            throw std::runtime_error(error_msg);
-        }
-        offset += sizeof(double);
-
-        // Deserialize velocity
-        if (std::memcpy(&velocity, &rawData[offset], sizeof(double)) != &velocity) {
-            throw std::runtime_error(error_msg);
-        }
-        offset += sizeof(double);
-
-        // Deserialize altitude
-        if (std::memcpy(&altitude, &rawData[offset], sizeof(double)) != &altitude) {
-            throw std::runtime_error(error_msg);
-        }
-    }
-
-    // File IO Functions
-    bool writeToFile(const std::string& filePath) {
-
-        bool success = true;
-
-        std::ofstream file;
-        file.open(filePath, std::ios::app);
-        if (file.is_open()) {
-            std::ostringstream oss;
-			oss << latitude << "," << longitude << "," << heading << "," << velocity << "," << altitude;
-            file << oss.str() << std::endl;
-            file.close();
-        }
-        else {
-            success = false;
+            return success;
         }
 
-        return success;
-    }
+        // Create Random Values
+        void createRandomValues() {
+            std::random_device rd;
+            std::mt19937 gen(rd());
 
-    // Create Random Values
-    void createRandomValues() {
-        std::random_device rd;
-        std::mt19937 gen(rd());
+            std::uniform_real_distribution<double> lat(-90.0, 90.0);
+            std::uniform_real_distribution<double> lon(-180.0, 180.0);
+            std::uniform_real_distribution<double> head(0.0, 360.0);
+            std::uniform_real_distribution<double> vel(250.0, 600.0);
+            std::uniform_real_distribution<double> alt(1000.0, 10000.0);
 
-        std::uniform_real_distribution<double> lat(-90.0, 90.0);
-        std::uniform_real_distribution<double> lon(-180.0, 180.0);
-        std::uniform_real_distribution<double> head(0.0, 360.0);
-        std::uniform_real_distribution<double> vel(250.0, 600.0);
-        std::uniform_real_distribution<double> alt(1000.0, 10000.0);
-
-        latitude = lat(gen);
-        longitude = lon(gen);
-        heading = head(gen); 
-        velocity = vel(gen);
-        altitude = alt(gen);
-    }
-
-    // Create a string that we can used to build a packet body and send.
-    int Serialize(char* outBuff) {
-
-        int retValue = ERR;
-		bool success = true;
-
-        if (outBuff == nullptr) {
-            return ERR; // Invalid output buffer
+            latitude = lat(gen);
+            longitude = lon(gen);
+            heading = head(gen);
+            velocity = vel(gen);
+            altitude = alt(gen);
         }
 
-        size_t offset = 0;
+        // Create a string that we can used to build a packet body and send.
+        int Serialize(char* outBuff) {
 
-        // Serialize latitude
-        if (memcpy(&outBuff[offset], &latitude, sizeof(double)) != &outBuff[offset]) { success = false; }
-        offset += sizeof(double);
+            int retValue = ERR;
+            bool success = true;
 
-        // Serialize longitude
-        if (memcpy(&outBuff[offset], &longitude, sizeof(double)) != &outBuff[offset]) { success = false; }
-        offset += sizeof(double);
+            if (outBuff == nullptr) {
+                return ERR; // Invalid output buffer
+            }
 
-        // Serialize heading
-        if (memcpy(&outBuff[offset], &heading, sizeof(double)) != &outBuff[offset]) { success = false; }
-        offset += sizeof(double);
+            size_t offset = 0;
 
-        // Serialize velocity
-        if (memcpy(&outBuff[offset], &velocity, sizeof(double)) != &outBuff[offset]) { success = false; }
-        offset += sizeof(double);
+            // Serialize latitude
+            if (memcpy(&outBuff[offset], &latitude, sizeof(double)) != &outBuff[offset]) { success = false; }
+            offset += sizeof(double);
 
-        // Serialize altitude
-        if (memcpy(&outBuff[offset], &altitude, sizeof(double)) != &outBuff[offset]) { success = false; }
+            // Serialize longitude
+            if (memcpy(&outBuff[offset], &longitude, sizeof(double)) != &outBuff[offset]) { success = false; }
+            offset += sizeof(double);
 
-        if (success) {
-            retValue = sizeof(double) * ATTRIBUTE_COUNT;
+            // Serialize heading
+            if (memcpy(&outBuff[offset], &heading, sizeof(double)) != &outBuff[offset]) { success = false; }
+            offset += sizeof(double);
+
+            // Serialize velocity
+            if (memcpy(&outBuff[offset], &velocity, sizeof(double)) != &outBuff[offset]) { success = false; }
+            offset += sizeof(double);
+
+            // Serialize altitude
+            if (memcpy(&outBuff[offset], &altitude, sizeof(double)) != &outBuff[offset]) { success = false; }
+
+            if (success) {
+                retValue = sizeof(double) * ATTRIBUTE_COUNT;
+            }
+
+            return retValue;
         }
 
-        return retValue;
-    }
+        static unsigned int GetAttributeCount() {
+            return ATTRIBUTE_COUNT;
+        }
 
-	static unsigned int GetAttributeCount() {
-		return ATTRIBUTE_COUNT;
-	}
-
-	static unsigned int GetSerializedSize() {
-		return sizeof(double) * ATTRIBUTE_COUNT;
-	}
-};
+        static unsigned int GetSerializedSize() {
+            return sizeof(double) * ATTRIBUTE_COUNT;
+        }
+    };
+}
