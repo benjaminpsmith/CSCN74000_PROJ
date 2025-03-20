@@ -1,207 +1,220 @@
 #include "connection.h"
 
-Connection::Connection()
-{
-	state = ConnState::UNAUTHENTICATED;
-	WORD version = MAKEWORD(2, 2);
-	int err = WSAStartup(version, &wsaData);
-	if (err)
+namespace ConnectionData {
+
+	Connection::Connection()
 	{
-		perror("Error starting WSA.\n");
-	}
-
-	this->connectionDetails.socket = 0;
-	this->passphrase = nullptr;
-	memset(&this->wsaData, 0, sizeof(wsaData));
-
-}
-
-fd Connection::createSocket()
-{
-	fd createdSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
-	if (createdSocket < 0)
-	{
-		int err = WSAGetLastError();
-		perror("Error creating socket.\n");
-		WSACleanup();
-	}
-	return createdSocket;
-}
-
-address Connection::createAddress(port portNum, iPAddress ip)
-{
-	address connectionAddress;
-
-	connectionAddress.sin_family = AF_INET;
-	connectionAddress.sin_port = htons(portNum);
-	if (ip == nullptr)
-	{
-		connectionAddress.sin_addr.s_addr = INADDR_ANY;
-	}
-	else
-	{
-		connectionAddress.sin_addr.s_addr = inet_addr(ip);
-	}
-	
-
-	return connectionAddress;
-}
-
-int Connection::establishConnection(PacketDef& handshakePacket, address* targetAddress)
-{
-	int ret;
-	uint8_t flags;
-	int authBit;
-	int ackBit;
-	char buffer[Constants::MAX_PACKET_LENGTH];
-
-	ret = 0;
-	flags = handshakePacket.getFlag();
-
-	authBit = flags & 0x4;
-	ackBit = flags & 0x8;
-
-	if (state == ConnState::UNAUTHENTICATED && !authBit)
-	{
-		handshakePacket.setFlag(PacketDef::Flag::AUTH);
-		ret = handshakePacket.Serialize(buffer);
-
-		if (ret)
+		state = ConnState::UNAUTHENTICATED;
+		WORD version = MAKEWORD(2, 2);
+		int err = WSAStartup(version, &wsaData);
+		if (err)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress)); 
+			std::cerr << "Error initializing WSA." << std::endl;
+		}
+
+		this->connectionDetails.socket = 0;
+		this->passphrase = nullptr;
+		if (memset(&this->wsaData, 0, sizeof(wsaData)) != &this->wsaData)
+		{
+			std::cerr << "Error initializing wsaData." << std::endl;
+		}
+
+	}
+
+	fd Connection::createSocket()
+	{
+		fd createdSocket = socket(AF_INET, SOCK_DGRAM, IPPROTO_UDP);
+		if (createdSocket < 0)
+		{
 			int err = WSAGetLastError();
+			std::cerr << "Error creating socket." << std::endl;
+			int cleanupValue = WSACleanup();
+			std::cout << "WSACleanup returned: " << cleanupValue << std::endl;
 		}
-		state = ConnState::HANDSHAKING;
-		return 1;
+		return createdSocket;
 	}
 
-	if (state == ConnState::HANDSHAKING && authBit && ackBit)
+	address Connection::createAddress(port portNum, iPAddress ip)
 	{
-		handshakePacket.setFlag(PacketDef::Flag::ACK);
-		ret = handshakePacket.Serialize(buffer);
+		address connectionAddress;
 
-		if (ret)
+		connectionAddress.sin_family = AF_INET;
+		connectionAddress.sin_port = htons(portNum);
+		if (ip == nullptr)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
+			connectionAddress.sin_addr.s_addr = INADDR_ANY;
 		}
-		
-		return 1;
-	}
-
-	if (state == ConnState::HANDSHAKING && ackBit)
-	{
-		state = ConnState::AUTHENTICATED;
-		ret = 1;
-	}
-
-	return 1;
-}
-
-void Connection::setConnectionDetails(fd* socketFd, address* targetAddress)
-{
-	this->connectionDetails.socket = *socketFd;
-	this->connectionDetails.addr = *targetAddress;
-}
-
-bool Connection::isAuthenticated()
-{
-	return this->state == ConnState::AUTHENTICATED;
-}
-
-ConnState Connection::getAuthenticationState()
-{
-	return this->state;
-}
-
-void Connection::setPassphrase(const char* passphrase)
-{
-	this->passphrase = passphrase;
-}
-
-int Connection::bindTo(fd* socketFd, address* targetAddress)
-{
-	if (bind(*socketFd, (struct sockaddr*)targetAddress, sizeof(sockaddr)) < 0)
-	{
-		int err = WSAGetLastError();
-		perror("Error binding socket.\n");
-		return 0;
-	}
-
-	return 1;
-}
-
-int Connection::accept(PacketDef& handshakePacket, address* targetAddress)
-{
-	int ret;
-	uint8_t flags;
-	int authBit;
-	int ackBit;
-	char* authData;
-	uint32_t airplaneID;
-
-	char buffer[Constants::MAX_PACKET_LENGTH];
-
-	airplaneID = 0;
-	authData = nullptr;
-	ret = 0;
-	authBit = 0;
-	ackBit = 0;
-	flags = handshakePacket.getFlag();
-
-	authBit = flags & 0x4;
-	ackBit = flags & 0x8;
-
-	if (state == ConnState::UNAUTHENTICATED && authBit)
-	{
-		//extract the password and compare it to the correct one
-
-		authData = handshakePacket.getData();
-
-		if (authData != nullptr)
+		else
 		{
-			ret = strncmp(authData, this->passphrase, handshakePacket.getBodyLen());
+			connectionAddress.sin_addr.s_addr = inet_addr(ip);
 		}
 
-		if (!ret)
+
+		return connectionAddress;
+	}
+
+	int Connection::establishConnection(PacketData::PacketDef& handshakePacket, address* targetAddress)
+	{
+		int ret;
+		uint8_t flags;
+		int authBit;
+		int ackBit;
+		char buffer[PacketData::Constants::MAX_PACKET_LENGTH];
+
+		ret = 0;
+		flags = handshakePacket.getFlag();
+
+		authBit = flags & 0x4;
+		ackBit = flags & 0x8;
+
+		if (state == ConnState::UNAUTHENTICATED && !authBit)
 		{
-			//send AUTH + ACK
-			handshakePacket.setFlag(PacketDef::Flag::AUTH_ACK);
+			handshakePacket.setFlag(PacketData::PacketDef::Flag::AUTH);
 			ret = handshakePacket.Serialize(buffer);
 
 			if (ret)
 			{
-				ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
+				ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
+				int err = WSAGetLastError();
 			}
-			airplaneID = handshakePacket.getSrc();
-			memcpy(this->connectionDetails.airplaneID, &airplaneID, 3);
-
 			state = ConnState::HANDSHAKING;
+			return 1;
 		}
 
-		return 1;
-
-	}
-
-	if (state == ConnState::HANDSHAKING && ackBit && !authBit)
-	{
-
-		//send ACK
-		handshakePacket.setFlag(PacketDef::Flag::ACK);
-		ret = handshakePacket.Serialize(buffer);
-
-		if (ret)
+		if (state == ConnState::HANDSHAKING && authBit && ackBit)
 		{
-			ret = sendto(connectionDetails.socket, buffer, ret, 0, (struct sockaddr*)targetAddress, sizeof(*targetAddress));
+			handshakePacket.setFlag(PacketData::PacketDef::Flag::ACK);
+			ret = handshakePacket.Serialize(buffer);
+
+			if (ret)
+			{
+				ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
+			}
+
+			return 1;
 		}
 
-		state = ConnState::AUTHENTICATED;
+		if (state == ConnState::HANDSHAKING && ackBit)
+		{
+			state = ConnState::AUTHENTICATED;
+			ret = 1;
+		}
 
 		return 1;
 	}
 
-	return 1;
-}
+	void Connection::setConnectionDetails(const fd* socketFd, const address* targetAddress)
+	{
+		this->connectionDetails.socket = *socketFd;
+		this->connectionDetails.addr = *targetAddress;
+	}
 
-Connection::~Connection()
-{
+	bool Connection::isAuthenticated()
+	{
+		return this->state == ConnState::AUTHENTICATED;
+	}
+
+	ConnState Connection::getAuthenticationState()
+	{
+		return this->state;
+	}
+
+	void Connection::setPassphrase(const char* passphrase)
+	{
+		this->passphrase = passphrase;
+	}
+
+	int Connection::bindTo(fd* socketFd, address* targetAddress)
+	{
+		int retValue = 1;
+
+		if (bind(*socketFd, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(sockaddr)) < 0)
+		{
+			int err = WSAGetLastError();
+			std::cerr << "Error binding to socket." << std::endl;
+			retValue = 0;
+		}
+
+		return retValue;
+	}
+
+	int Connection::accept(PacketData::PacketDef& handshakePacket, address* targetAddress)
+	{
+		int ret;
+		uint8_t flags;
+		int authBit;
+		int ackBit;
+		char* authData;
+		uint32_t airplaneID;
+
+		char buffer[PacketData::Constants::MAX_PACKET_LENGTH];
+
+		airplaneID = 0;
+		authData = nullptr;
+		ret = 0;
+		authBit = 0;
+		ackBit = 0;
+		flags = handshakePacket.getFlag();
+
+		authBit = flags & 0x4;
+		ackBit = flags & 0x8;
+
+		if (state == ConnState::UNAUTHENTICATED && authBit)
+		{
+			//extract the password and compare it to the correct one
+
+			authData = handshakePacket.getData();
+
+			if (authData != nullptr)
+			{
+				ret = strncmp(authData, this->passphrase, handshakePacket.getBodyLen());
+			}
+
+			if (!ret)
+			{
+				//send AUTH + ACK
+				handshakePacket.setFlag(PacketData::PacketDef::Flag::AUTH_ACK);
+				ret = handshakePacket.Serialize(buffer);
+
+				if (ret)
+				{
+					ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
+				}
+				airplaneID = handshakePacket.getSrc();
+				if (memcpy(this->connectionDetails.airplaneID, &airplaneID, 3) != this->connectionDetails.airplaneID)
+				{
+					std::cerr << "Error copying airplane ID." << std::endl;
+				}
+
+				state = ConnState::HANDSHAKING;
+			}
+
+			return 1;
+
+		}
+
+		if (state == ConnState::HANDSHAKING && ackBit && !authBit)
+		{
+
+			//send ACK
+			handshakePacket.setFlag(PacketData::PacketDef::Flag::ACK);
+			ret = handshakePacket.Serialize(buffer);
+
+			if (ret)
+			{
+				ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
+			}
+
+			state = ConnState::AUTHENTICATED;
+
+			return 1;
+		}
+
+		return 1;
+	}
+
+	Connection::~Connection()
+	{
+	}
+
 }
