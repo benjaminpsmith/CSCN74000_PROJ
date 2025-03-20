@@ -74,6 +74,10 @@ int main(void) {
             {
                 //start the connection handshake
                 int retValue = flightConnection.establishConnection(beginsHandshake, &connectionDetails.addr);
+                if (retValue == 1)
+                {
+                    std::cout << "Handshake begun." << std::endl;
+                }
             }
             else
             {
@@ -87,7 +91,7 @@ int main(void) {
                     int connectionSuccess = flightConnection.establishConnection(received, &rxSender);
                     if (connectionSuccess == 1)
                     {
-                        std::cout << "Client has been authenticated." << std::endl;
+                        std::cout << "Handshake continued.." << std::endl;
                     }
                 }
                 
@@ -154,9 +158,7 @@ int main(void) {
 						std::cerr << "Error: No ACK received." << std::endl;
 					}
 
-                }
-
-                
+                } 
 			}
             else if (!send_blackbox_data) {   // Request an image
 

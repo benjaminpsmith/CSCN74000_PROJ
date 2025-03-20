@@ -98,6 +98,10 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
             firstHandshakePacket = false;
             int retValue = flightConnection.accept(received, &rxSender);
+			if (retValue == 1)
+			{
+				std::cout << "Handshake begun." << std::endl;
+			}
 
             if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
             {
