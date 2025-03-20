@@ -155,10 +155,6 @@ namespace PacketData {
 
             int status = SUCC;
 
-            if (data == nullptr || bytes == 0) {
-                status = ERR; // Invalid input
-            }
-
             // Delete old data if it exists
             if (PACKET.BODY.data != nullptr) {
                 delete[] PACKET.BODY.data;
