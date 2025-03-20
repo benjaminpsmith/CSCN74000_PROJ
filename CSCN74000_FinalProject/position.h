@@ -15,7 +15,6 @@ public:
     double altitude = 0.0; // Metres
 
 	const int ERR = -1;
-    const int ERR = 1;
     const std::string error_msg = "An error has occured." ;
 
 public:
