@@ -104,35 +104,38 @@ namespace PositionData {
         int Serialize(char* outBuff) {
 
             int retValue = ERR;
-            bool success = true;
 
-            if (outBuff == nullptr) {
-                return ERR; // Invalid output buffer
+            if (outBuff != nullptr) {
+
+                bool success = true;
+
+                size_t offset = 0;
+
+                // Serialize latitude
+                if (memcpy(&outBuff[offset], &latitude, sizeof(double)) != &outBuff[offset]) { success = false; }
+                offset += sizeof(double);
+
+                // Serialize longitude
+                if (memcpy(&outBuff[offset], &longitude, sizeof(double)) != &outBuff[offset]) { success = false; }
+                offset += sizeof(double);
+
+                // Serialize heading
+                if (memcpy(&outBuff[offset], &heading, sizeof(double)) != &outBuff[offset]) { success = false; }
+                offset += sizeof(double);
+
+                // Serialize velocity
+                if (memcpy(&outBuff[offset], &velocity, sizeof(double)) != &outBuff[offset]) { success = false; }
+                offset += sizeof(double);
+
+                // Serialize altitude
+                if (memcpy(&outBuff[offset], &altitude, sizeof(double)) != &outBuff[offset]) { success = false; }
+
+                if (success) {
+                    retValue = sizeof(double) * ATTRIBUTE_COUNT;
+                }
             }
-
-            size_t offset = 0;
-
-            // Serialize latitude
-            if (memcpy(&outBuff[offset], &latitude, sizeof(double)) != &outBuff[offset]) { success = false; }
-            offset += sizeof(double);
-
-            // Serialize longitude
-            if (memcpy(&outBuff[offset], &longitude, sizeof(double)) != &outBuff[offset]) { success = false; }
-            offset += sizeof(double);
-
-            // Serialize heading
-            if (memcpy(&outBuff[offset], &heading, sizeof(double)) != &outBuff[offset]) { success = false; }
-            offset += sizeof(double);
-
-            // Serialize velocity
-            if (memcpy(&outBuff[offset], &velocity, sizeof(double)) != &outBuff[offset]) { success = false; }
-            offset += sizeof(double);
-
-            // Serialize altitude
-            if (memcpy(&outBuff[offset], &altitude, sizeof(double)) != &outBuff[offset]) { success = false; }
-
-            if (success) {
-                retValue = sizeof(double) * ATTRIBUTE_COUNT;
+            else {
+                retValue = ERR;
             }
 
             return retValue;

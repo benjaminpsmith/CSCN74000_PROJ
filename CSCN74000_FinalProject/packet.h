@@ -4,6 +4,7 @@
 #include <cstdint>
 #include <cstring>
 #include <iostream>
+#include <string_view>
 #include "position.h"
 
 namespace PacketData {
@@ -54,6 +55,7 @@ namespace PacketData {
 
         const int ERR = -1;
         const int SUCC = 1;
+        const std::string error_msg = "An error has occured.";
 
     public:
         // Constructor and Destructor
@@ -77,28 +79,28 @@ namespace PacketData {
             int status = SUCC;
 
             if (rawData == nullptr || length < Constants::MIN_PACKET_LENGTH) {
-                return; // Invalid input
+                throw std::invalid_argument(error_msg);
             }
 
             size_t offset = 0;
 
             // Deserialize header fields
-            if (memcpy(&PACKET.HEADER.src, &rawData[offset], sizeof(PACKET.HEADER.src)) != &PACKET.HEADER.src) { return; }
+            if (memcpy(&PACKET.HEADER.src, &rawData[offset], sizeof(PACKET.HEADER.src)) != &PACKET.HEADER.src) { throw std::runtime_error(error_msg); }
             offset += sizeof(PACKET.HEADER.src);
 
-            if (memcpy(&PACKET.HEADER.dest, &rawData[offset], sizeof(PACKET.HEADER.dest)) != &PACKET.HEADER.dest) { return; }
+            if (memcpy(&PACKET.HEADER.dest, &rawData[offset], sizeof(PACKET.HEADER.dest)) != &PACKET.HEADER.dest) { throw std::runtime_error(error_msg); }
             offset += sizeof(PACKET.HEADER.dest);
 
-            if (memcpy(&PACKET.HEADER.flag, &rawData[offset], sizeof(PACKET.HEADER.flag)) != &PACKET.HEADER.flag) { return; }
+            if (memcpy(&PACKET.HEADER.flag, &rawData[offset], sizeof(PACKET.HEADER.flag)) != &PACKET.HEADER.flag) { throw std::runtime_error(error_msg); }
             offset += sizeof(PACKET.HEADER.flag);
 
-            if (memcpy(&PACKET.HEADER.seqNum, &rawData[offset], sizeof(PACKET.HEADER.seqNum)) != &PACKET.HEADER.seqNum) { return; }
+            if (memcpy(&PACKET.HEADER.seqNum, &rawData[offset], sizeof(PACKET.HEADER.seqNum)) != &PACKET.HEADER.seqNum) { throw std::runtime_error(error_msg); }
             offset += sizeof(PACKET.HEADER.seqNum);
 
-            if (memcpy(&PACKET.HEADER.totalCount, &rawData[offset], sizeof(PACKET.HEADER.totalCount)) != &PACKET.HEADER.totalCount) { return; }
+            if (memcpy(&PACKET.HEADER.totalCount, &rawData[offset], sizeof(PACKET.HEADER.totalCount)) != &PACKET.HEADER.totalCount) { throw std::runtime_error(error_msg); }
             offset += sizeof(PACKET.HEADER.totalCount);
 
-            if (memcpy(&PACKET.HEADER.bodyLen, &rawData[offset], sizeof(PACKET.HEADER.bodyLen)) != &PACKET.HEADER.bodyLen) { return; }
+            if (memcpy(&PACKET.HEADER.bodyLen, &rawData[offset], sizeof(PACKET.HEADER.bodyLen)) != &PACKET.HEADER.bodyLen) { throw std::runtime_error(error_msg); }
             offset += sizeof(PACKET.HEADER.bodyLen);
 
             // Deserialize body
@@ -111,7 +113,7 @@ namespace PacketData {
                 if (memcpy(PACKET.BODY.data, &rawData[offset], PACKET.HEADER.bodyLen) != PACKET.BODY.data) {
                     delete[] PACKET.BODY.data;
                     PACKET.BODY.data = nullptr;
-                    return; // memcpy failure
+                    throw std::runtime_error(error_msg);
                 }
                 offset += PACKET.HEADER.bodyLen;
             }
@@ -122,10 +124,9 @@ namespace PacketData {
                     delete[] PACKET.BODY.data;
                     PACKET.BODY.data = nullptr;
                 }
-                return; // memcpy failure
+                throw std::runtime_error(error_msg);
             }
 
-            return; // Success
         }
         ~PacketDef() {
             delete[]PACKET.BODY.data;
@@ -258,55 +259,56 @@ namespace PacketData {
 
         // Extra Functions
         int operator=(const PacketDef& other) {
-            if (this == &other) {
-                return SUCC; // Self-assignment
-            }
 
-            // Copy header fields
-            this->PACKET.HEADER.bodyLen = other.PACKET.HEADER.bodyLen;
-            this->PACKET.HEADER.dest = other.PACKET.HEADER.dest;
-            this->PACKET.HEADER.flag = other.PACKET.HEADER.flag;
-            this->PACKET.HEADER.seqNum = other.PACKET.HEADER.seqNum;
-            this->PACKET.HEADER.src = other.PACKET.HEADER.src;
-            this->PACKET.HEADER.totalCount = other.PACKET.HEADER.totalCount;
+            int status = SUCC;
 
-            unsigned int bodyLen = this->PACKET.HEADER.bodyLen;
+            if (this != &other) {
 
-            // Delete existing data if it exists
-            if (this->PACKET.BODY.data != nullptr) {
-                delete[] this->PACKET.BODY.data;
-                this->PACKET.BODY.data = nullptr;
-            }
+                // Copy header fields
+                this->PACKET.HEADER.bodyLen = other.PACKET.HEADER.bodyLen;
+                this->PACKET.HEADER.dest = other.PACKET.HEADER.dest;
+                this->PACKET.HEADER.flag = other.PACKET.HEADER.flag;
+                this->PACKET.HEADER.seqNum = other.PACKET.HEADER.seqNum;
+                this->PACKET.HEADER.src = other.PACKET.HEADER.src;
+                this->PACKET.HEADER.totalCount = other.PACKET.HEADER.totalCount;
 
-            // Allocate new memory for body data
-            if (bodyLen > 0) {
-                this->PACKET.BODY.data = new char[bodyLen];
-                if (this->PACKET.BODY.data == nullptr) {
-                    return ERR; // Memory allocation failure
-                }
+                unsigned int bodyLen = this->PACKET.HEADER.bodyLen;
 
-                // Initialize memory to 0
-                if (memset(this->PACKET.BODY.data, 0, bodyLen) != this->PACKET.BODY.data) {
+                // Delete existing data if it exists
+                if (this->PACKET.BODY.data != nullptr) {
                     delete[] this->PACKET.BODY.data;
                     this->PACKET.BODY.data = nullptr;
-                    return ERR; // memset failure
                 }
 
-                // Copy body data
-                if (memcpy(this->PACKET.BODY.data, other.PACKET.BODY.data, bodyLen) != this->PACKET.BODY.data) {
-                    delete[] this->PACKET.BODY.data;
+                // Allocate new memory for body data
+                if (bodyLen > 0) {
+                    this->PACKET.BODY.data = new char[bodyLen];
+                    if (this->PACKET.BODY.data == nullptr) {
+                        status = ERR; // Memory allocation failure
+                    }
+
+                    // Initialize memory to 0
+                    if (memset(this->PACKET.BODY.data, 0, bodyLen) != this->PACKET.BODY.data) {
+                        delete[] this->PACKET.BODY.data;
+                        this->PACKET.BODY.data = nullptr;
+                        status = ERR; // memset failure
+                    }
+
+                    // Copy body data
+                    if (memcpy(this->PACKET.BODY.data, other.PACKET.BODY.data, bodyLen) != this->PACKET.BODY.data) {
+                        delete[] this->PACKET.BODY.data;
+                        this->PACKET.BODY.data = nullptr;
+                        status = ERR; // memcpy failure
+                    }
+                }
+                else {
                     this->PACKET.BODY.data = nullptr;
-                    return ERR; // memcpy failure
                 }
-            }
-            else {
-                this->PACKET.BODY.data = nullptr;
-            }
 
-            // Copy tail fields
-            this->PACKET.TAIL.crc = other.PACKET.TAIL.crc;
-
-            return SUCC; // Success
+                // Copy tail fields
+                this->PACKET.TAIL.crc = other.PACKET.TAIL.crc;
+            }
+            return status; // Success
         }
     };
 }
