@@ -8,8 +8,6 @@
 #include <cstdint>
 #include "packet.h"
 
-using namespace PacketData;
-
 namespace ConnectionData {
 
 #define CONN_PORT 34214
@@ -55,9 +53,9 @@ namespace ConnectionData {
 
 		fd createSocket();
 		int bindTo(fd* socketFd, address* targetAddress);
-		int accept(PacketDef& handshakePacket, address* targetAddress);
+		int accept(PacketData::PacketDef& handshakePacket, address* targetAddress);
 		address createAddress(port portNum, iPAddress ip = nullptr);
-		int establishConnection(PacketDef& handshakePacket, address* targetAddress);
+		int establishConnection(PacketData::PacketDef& handshakePacket, address* targetAddress);
 		void setConnectionDetails(fd* socketFd, address* targetAddress);
 		bool isAuthenticated();
 		ConnState getAuthenticationState();

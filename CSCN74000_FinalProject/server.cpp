@@ -156,6 +156,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         {
 
             // COMPLETE DURING SPRINT 2
+            break;
         }
     }
     
