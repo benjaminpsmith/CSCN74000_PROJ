@@ -9,12 +9,15 @@ namespace ConnectionData {
 		int err = WSAStartup(version, &wsaData);
 		if (err)
 		{
-			perror("Error starting WSA.\n");
+			std::cerr << "Error initializing WSA." << std::endl;
 		}
 
 		this->connectionDetails.socket = 0;
 		this->passphrase = nullptr;
-		memset(&this->wsaData, 0, sizeof(wsaData));
+		if (memset(&this->wsaData, 0, sizeof(wsaData)) != &this->wsaData)
+		{
+			std::cerr << "Error initializing wsaData." << std::endl;
+		}
 
 	}
 
@@ -24,8 +27,9 @@ namespace ConnectionData {
 		if (createdSocket < 0)
 		{
 			int err = WSAGetLastError();
-			perror("Error creating socket.\n");
-			WSACleanup();
+			std::cerr << "Error creating socket." << std::endl;
+			int cleanupValue = WSACleanup();
+			std::cout << "WSACleanup returned: " << cleanupValue << std::endl;
 		}
 		return createdSocket;
 	}

@@ -97,7 +97,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             }
 
             firstHandshakePacket = false;
-            flightConnection.accept(received, &rxSender);
+            int retValue = flightConnection.accept(received, &rxSender);
 
             if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
             {
@@ -135,8 +135,13 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
                                           // Create a position object from the string     
             std::string filename = std::to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
-            pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
-            std::cout << "Black-box data received and written to file." << std::endl;
+            bool retValue = pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
+            if (retValue) {
+                std::cout << "Black-box data received and written to file." << std::endl;
+            }
+            else {
+				std::cerr << "Error writing black-box data to file." << std::endl;
+            }
 
             // Send an ACK back to the client -  could potentially make one ahead of time and use it repeatedly since the body is empty, would only need to change dest?
             toSend.setSrc(SERVER_ID);
@@ -145,11 +150,13 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             toSend.setSeqNum(1);
             toSend.setTotalCount(1);
             toSend.setBodyLen(0);
-            toSend.setData(nullptr, 0);
+			if (toSend.setData(nullptr, 0) == -1) {
+				std::cerr << "Error setting data: size too large or error allocating memory." << std::endl;
+			}
             toSend.setCrc(0);
             char sendBuffer[Constants::MAX_PACKET_LENGTH];
             int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
-            sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
+            int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, (struct sockaddr*)&rxSender, addrLength);
             break;
         }
         case PacketDef::Flag::IMG:
