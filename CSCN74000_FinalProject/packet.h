@@ -27,6 +27,7 @@ namespace PacketData {
             AUTH = 4,//000100
             ACK = 8,//001000
             AUTH_ACK = 12,//
+            AUTH_LOST = 128,
             SHUTDOWN = 255//11111111
         };
 

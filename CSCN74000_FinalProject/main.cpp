@@ -41,6 +41,7 @@ int main(void){
     bool closeMenu = false;
     Menu mainMenu;
 
+
     std::thread menuThread([&] {
         int result = Server::menuThread(mainMenu, closeMenu);
         });
@@ -86,9 +87,13 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     PacketDef toSend;
     PacketData::PacketDef ackReceived(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::ACK, 1, 1);
     PacketData::PacketDef shutdownResponse(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::SHUTDOWN, 1, 1);
+    PacketData::PacketDef reauthResponse(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::AUTH_LOST, 1, 1);
     char sendBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
     char recvBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
     char messageBuff[256] = { 0 };
+
+    int attempts = 0;
+    int packetCount = 0;
 
     address rxSender;
     int addrLength;
@@ -97,7 +102,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     bool secondElapsed;
     int err;
     int bindToRetVal;
-
+    PacketDef::Flag incomingFlag;
 
     bindToRetVal = 0;
     state = Server::SERVER_STATE::AWAITING_AUTH;
@@ -105,18 +110,13 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     shutdown = false;
     bytesRead = 0;
     err = 0;
-
+    incomingFlag = PacketDef::Flag::EMPTY;
 
     //set the connection details and creat the socket
     connectionDetails.socket = flightConnection.createSocket(); 
     connectionDetails.addr = flightConnection.createAddress(serverPort, SERVER_IP);
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
     flightConnection.setPassphrase(SECURE_PASSWORD);
-
-    struct timeval timeout;
-    timeout.tv_sec = 1;
-    timeout.tv_usec = 500;
-
 
     bindToRetVal = flightConnection.bindTo(&connectionDetails.socket, &connectionDetails.addr);
 
@@ -128,6 +128,8 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
     while (!shutdown)
     {
+        incomingFlag = PacketDef::Flag::EMPTY;
+
         while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
         {
             state = Server::SERVER_STATE::AWAITING_AUTH;
@@ -139,23 +141,35 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             {
                 bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
 
-                err = WSAGetLastError();
-
-                received = PacketDef(recvBuffer, bytesRead);
+                if (bytesRead > 0)
+                {
+                    err = WSAGetLastError();
+                    received = PacketDef(recvBuffer, bytesRead);
+                }
+                
             }
 
             firstHandshakePacket = false;
-            int retValue = flightConnection.accept(received, &rxSender);
-			if (retValue != 1)
-			{
-                menu << "Error accepting connection.";
-			}
 
-            if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
+            if (bytesRead > 0)
             {
-                Sleep(1);
-                menu << "Sleeping for one second...";
+                int retValue = flightConnection.accept(received, &rxSender);
+                if (retValue != 1)
+                {
+                    menu << "Error accepting connection.";
+                }
+
+                if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
+                {
+                    Sleep(1);
+                    menu << "Sleeping for one second...";
+                }
             }
+            else
+            {
+                flightConnection.restartAuth();
+            }
+            
         }
 
         //initially this is 0, if nothing is received it is -1, and only if we receive do we leave the idle state. We go back to the idle state after 1 instance of receiving nothing.
@@ -166,18 +180,23 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
         menu << "Server is now idle and waiting to receive packets...";
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
-        if (bytesRead == -1) {
+        if (bytesRead < 0) {
             
-                menu << "Error in recvfrom()";
+                menu << "Error in recvfrom() or timed out";
+                flightConnection.restartAuth();
+                int bytesToSend = reauthResponse.Serialize(sendBuffer);  // SEND REAUTH
+                int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+                incomingFlag = PacketDef::Flag::EMPTY;
         }
         else {
             menu << "Server received a command from client";
             // We are now receiving the black-box data from the client
             state = Server::SERVER_STATE::RECEIVING;
             menu << "Server is now receiving";
+            received = PacketDef(recvBuffer, bytesRead);    //RECV BB DATA
+            incomingFlag = received.getFlag();
         }
-        received = PacketDef(recvBuffer, bytesRead);    //RECV BB DATA
-        PacketDef::Flag incomingFlag = received.getFlag();
+
 
         // Check if it is a black-box packet or a request for an image
         switch (incomingFlag) {
@@ -217,8 +236,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             {
             
                 int i = 0;
-                int attempts = 0;
-                int packetCount = 0;
+               
                 const std::vector<PacketDef*>* packetList = nullptr;
                 WeatherImage::Image weatherImage;
 
@@ -270,6 +288,8 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     if (attempts >= 3)
                     {
                         menu << "Failed to send image: 3 missed ACKS";
+
+                        shutdown = true;
                         break;
                     }
                 }
@@ -278,11 +298,8 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             }
         }
     
-        if (bytesRead <= 0)
-        {
-            state = Server::SERVER_STATE::IDLE;
-            Sleep(1);
-        }
+        state = Server::SERVER_STATE::IDLE;
+        Sleep(250);
 
     }
 
