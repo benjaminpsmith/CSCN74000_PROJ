@@ -129,14 +129,19 @@
   </ItemDefinitionGroup>
   <ItemGroup>
     <ClCompile Include="connection.cpp" />
+    <ClCompile Include="image.cpp" />
     <ClCompile Include="main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="connection.h" />
+    <ClInclude Include="image.h" />
     <ClInclude Include="packet.h" />
   </ItemGroup>
   <ItemGroup>
     <None Include="position.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <Image Include="image.png" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

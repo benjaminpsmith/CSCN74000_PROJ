@@ -11,7 +11,7 @@ namespace PacketData {
     class Constants {
     public:
         static constexpr unsigned int MAX_HEADER_LENGTH = 21;  // This may not be accurate due to byte padding and alignment
-        static constexpr unsigned int MAX_BODY_LENGTH = 256;
+        static constexpr unsigned int MAX_BODY_LENGTH = 255;
         static constexpr unsigned int MAX_TAIL_LENGTH = 4;
         static constexpr unsigned int MIN_PACKET_LENGTH = MAX_HEADER_LENGTH + MAX_TAIL_LENGTH;
         static constexpr unsigned int MAX_PACKET_LENGTH = MAX_HEADER_LENGTH + MAX_BODY_LENGTH + MAX_TAIL_LENGTH;
@@ -26,7 +26,8 @@ namespace PacketData {
             IMG = 2,//000010
             AUTH = 4,//000100
             ACK = 8,//001000
-            AUTH_ACK = 12,//001100
+            AUTH_ACK = 12,//
+            SHUTDOWN = 255//11111111
         };
 
     private:
