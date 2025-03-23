@@ -92,9 +92,9 @@ int main(void) {
 		std::cout << " Client has been authenticated." << std::endl;
 		std::cout << " Client will now alternate between sending black box data to the server and requests for images.\n" << std::endl;
 
-		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED)   // Loop
+		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED && !shutdown)   // Loop
 		{
-            bool send_blackbox_data = false;
+            bool send_blackbox_data = true;
 
 			if (send_blackbox_data) { // Send black box data
 
@@ -137,7 +137,14 @@ int main(void) {
 					if (received.getFlag() != PacketData::PacketDef::Flag::ACK)
 					{
 						std::cerr << "Error: No ACK received." << std::endl;
+                        
 					}
+                    if (received.getFlag() == PacketData::PacketDef::Flag::SHUTDOWN)
+                    {
+                        std::cout << "Received shutdown message" << std::endl;
+                        shutdown = true;
+                        break;
+                    }
                 } 
 			}
             else if (!send_blackbox_data) {   // Request an image
