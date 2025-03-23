@@ -173,7 +173,6 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
             std::cout << "Server received " << bytesRead << " bytes." << std::endl;
             PacketData::PacketDef ackReceived(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::ACK, 1, 1);
-            PacketData::PacketDef nackResponse(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::EMPTY, 1, 1);
             PacketData::PacketDef shutdownResponse(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::SHUTDOWN, 1, 1);
             int i = 0;
             int attempts = 0;
