@@ -8,6 +8,11 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
+#define ERROR_CODE -1
+#define SUCCESS_CODE 1
+#define POSITION_SIZE 40
+#define POSITION_ATTR_COUNT 5
+
 namespace Microsoft::VisualStudio::CppUnitTestFramework
 {
     template<>
@@ -31,7 +36,6 @@ namespace PacketDataTests
     TEST_CLASS(PacketDefTests)
     {
     public:
-        // Test default constructor
         TEST_METHOD(TestDefaultConstructor)
         {
             PacketData::PacketDef packet;
@@ -47,8 +51,6 @@ namespace PacketDataTests
             Assert::IsNull(packet.getData(), L"Default data should be null");
             Assert::AreEqual(0u, packet.getCrc(), L"Default CRC should be 0");
         }
-
-        // Test parameterized constructor
         TEST_METHOD(TestParameterizedConstructor)
         {
             uint32_t src = 0xA0B1C2;
@@ -65,8 +67,6 @@ namespace PacketDataTests
             Assert::AreEqual(seqNum, packet.getSeqNum(), L"Sequence number not set correctly");
             Assert::AreEqual(totalCount, packet.getTotalCount(), L"Total count not set correctly");
         }
-
-        // Test raw data constructor
         TEST_METHOD(TestRawDataConstructor)
         {
             // Prepare test packet data
@@ -121,8 +121,6 @@ namespace PacketDataTests
             Assert::AreEqual(bodyLen, packet.getBodyLen(), L"Body length not deserialized correctly");
             Assert::AreEqual(crc, packet.getCrc(), L"CRC not deserialized correctly");
         }
-
-        // Test raw data constructor with invalid arguments
         TEST_METHOD(TestRawDataConstructor_InvalidArguments)
         {
             // Test null rawData
@@ -140,8 +138,6 @@ namespace PacketDataTests
             Assert::ExpectException<std::invalid_argument>(func2,
                 L"Too small buffer should throw invalid_argument");
         }
-
-        // Test setters and getters
         TEST_METHOD(TestSettersAndGetters)
         {
             PacketData::PacketDef packet;
@@ -166,8 +162,6 @@ namespace PacketDataTests
             packet.setCrc(0x12345678);
             Assert::AreEqual(0x12345678u, packet.getCrc(), L"CRC not set correctly");
         }
-
-        // Test data setting
         TEST_METHOD(TestSetData)
         {
             PacketData::PacketDef packet;
@@ -190,10 +184,8 @@ namespace PacketDataTests
             // Test setting oversized data
             char largeData[PacketData::Constants::MAX_BODY_LENGTH + 1];
             result = packet.setData(largeData, sizeof(largeData));
-            Assert::AreEqual(-1, result, L"Oversized data should fail");
+            Assert::AreEqual(ERROR_CODE, result, L"Oversized data should fail");
         }
-
-        // Test serialization
         TEST_METHOD(TestSerialize)
         {
             // Create test packet
@@ -202,7 +194,7 @@ namespace PacketDataTests
 
             // Create test body data
             PositionData::Position pos(12.34, 56.78, 90.0, 450.0, 5000.0);
-            char bodyData[40];
+            char bodyData[POSITION_SIZE];
             pos.Serialize(bodyData);
 
             // Set body data and CRC
@@ -225,8 +217,6 @@ namespace PacketDataTests
             Assert::AreEqual(packet.getCrc(), deserializedPacket.getCrc(),
                 L"CRC not correctly serialized/deserialized");
         }
-
-        // Test serialization with null buffer
         TEST_METHOD(TestSerialize_NullBuffer)
         {
             PacketData::PacketDef packet(0xA0B1C2, 0xD3E4F5,
@@ -239,8 +229,6 @@ namespace PacketDataTests
             Assert::AreEqual(-1, serializeResult,
                 L"Serialization to null buffer should return error");
         }
-
-        // Test assignment operator
         TEST_METHOD(TestAssignmentOperator)
         {
             // Create first packet
@@ -249,7 +237,7 @@ namespace PacketDataTests
 
             // Create body data
             PositionData::Position pos(12.34, 56.78, 90.0, 450.0, 5000.0);
-            char bodyData[40];
+            char bodyData[POSITION_SIZE];
             pos.Serialize(bodyData);
 
             // Set body data and CRC
@@ -261,7 +249,7 @@ namespace PacketDataTests
             int assignResult = (packet2 = packet1);
 
             // Verify assignment
-            Assert::AreEqual(1, assignResult, L"Assignment should succeed");
+            Assert::AreEqual(SUCCESS_CODE, assignResult, L"Assignment should succeed");
 
             // Compare all fields
             Assert::AreEqual(packet1.getSrc(), packet2.getSrc(), L"Source not copied");
@@ -284,7 +272,6 @@ namespace PositionDataTests
     TEST_CLASS(PositionTests)
     {
     public:
-        // Test default constructor
         TEST_METHOD(TestDefaultConstructor)
         {
             PositionData::Position pos;
@@ -296,8 +283,6 @@ namespace PositionDataTests
             Assert::AreEqual(0.0, pos.velocity, L"Velocity should be 0.0");
             Assert::AreEqual(0.0, pos.altitude, L"Altitude should be 0.0");
         }
-
-        // Test parameterized constructor
         TEST_METHOD(TestParameterizedConstructor)
         {
             double lat = 40.7128;
@@ -314,15 +299,13 @@ namespace PositionDataTests
             Assert::AreEqual(vel, pos.velocity, L"Velocity not set correctly");
             Assert::AreEqual(alt, pos.altitude, L"Altitude not set correctly");
         }
-
-        // Test raw data constructor
         TEST_METHOD(TestRawDataConstructor)
         {
             // Prepare test data
-            double testData[5] = { 40.7128, -74.0060, 90.0, 500.0, 5000.0 };
+            double testData[POSITION_ATTR_COUNT] = { 40.7128, -74.0060, 90.0, 500.0, 5000.0 };
 
             // Convert to char array to mimic raw data
-            char rawData[5 * sizeof(double)];
+            char rawData[POSITION_SIZE];
             std::memcpy(rawData, testData, sizeof(rawData));
 
             // Create position from raw data
@@ -335,8 +318,6 @@ namespace PositionDataTests
             Assert::AreEqual(testData[3], pos.velocity, L"Velocity not deserialized correctly");
             Assert::AreEqual(testData[4], pos.altitude, L"Altitude not deserialized correctly");
         }
-
-        // Test raw data constructor with null pointer
         TEST_METHOD(TestRawDataConstructor_NullPointer)
         {
             // Verify that passing nullptr throws an invalid_argument exception
@@ -346,8 +327,6 @@ namespace PositionDataTests
 
             Assert::ExpectException<std::invalid_argument>(testFunc, L"Null pointer should throw invalid_argument");
         }
-
-        // Test file writing functionality
         TEST_METHOD(TestWriteToFile)
         {
             // Prepare test position
@@ -380,8 +359,6 @@ namespace PositionDataTests
             // Basic check on written data
             Assert::IsFalse(line.empty(), L"File should contain written data");
         }
-
-        // Test random value generation
         TEST_METHOD(TestCreateRandomValues)
         {
             PositionData::Position pos;
@@ -399,15 +376,13 @@ namespace PositionDataTests
             Assert::IsTrue(pos.altitude >= 1000.0 && pos.altitude <= 10000.0,
                 L"Altitude should be between 1000 and 10000");
         }
-
-        // Test serialization
         TEST_METHOD(TestSerialize)
         {
             // Prepare test position
             PositionData::Position original(40.7128, -74.0060, 90.0, 500.0, 5000.0);
 
             // Create buffer for serialization
-            char buffer[40];
+            char buffer[POSITION_SIZE];
 
             // Serialize
             int serializeResult = original.Serialize(buffer);
@@ -431,8 +406,6 @@ namespace PositionDataTests
             Assert::AreEqual(original.altitude, deserialized.altitude,
                 L"Altitude not correctly serialized/deserialized");
         }
-
-        // Test serialization with null buffer
         TEST_METHOD(TestSerialize_NullBuffer)
         {
             PositionData::Position pos(40.7128, -74.0060, 90.0, 500.0, 5000.0);
@@ -441,20 +414,16 @@ namespace PositionDataTests
             int serializeResult = pos.Serialize(nullptr);
 
             // Verify error return
-            Assert::AreEqual(pos.ERR, serializeResult,
-                L"Serialization to null buffer should return error");
+            Assert::AreEqual(pos.ERR, serializeResult, L"Serialization to null buffer should return error");
         }
-
-        // Test static methods
         TEST_METHOD(TestStaticMethods)
         {
             // Verify attribute count
-            Assert::AreEqual(5u, PositionData::Position::GetAttributeCount(),
+            Assert::AreEqual((unsigned int)POSITION_ATTR_COUNT, PositionData::Position::GetAttributeCount(),
                 L"Attribute count should be 5");
 
             // Verify serialized size
-            Assert::AreEqual(40, PositionData::Position::GetSerializedSize(),
-                L"Serialized size should be 5 * sizeof(double)");
+            Assert::AreEqual(POSITION_SIZE, PositionData::Position::GetSerializedSize(), L"Serialized size should be 40");
         }
     };
 }
