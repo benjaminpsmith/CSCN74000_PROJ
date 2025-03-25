@@ -206,49 +206,50 @@ namespace PacketData {
             if (outBuffer == nullptr) {
                 packetSize = ERR; // Invalid output buffer
             }
+            else {
 
-            size_t offset = 0;
+                size_t offset = 0;
 
-            // Calculate the size of the entire packet
-            packetSize = sizeof(PACKET.HEADER.src) + sizeof(PACKET.HEADER.dest) + sizeof(PACKET.HEADER.flag) +
-                sizeof(PACKET.HEADER.seqNum) + sizeof(PACKET.HEADER.totalCount) + sizeof(PACKET.HEADER.bodyLen) +
-                PACKET.HEADER.bodyLen + sizeof(PACKET.TAIL.crc);
+                // Calculate the size of the entire packet
+                packetSize = sizeof(PACKET.HEADER.src) + sizeof(PACKET.HEADER.dest) + sizeof(PACKET.HEADER.flag) +
+                    sizeof(PACKET.HEADER.seqNum) + sizeof(PACKET.HEADER.totalCount) + sizeof(PACKET.HEADER.bodyLen) +
+                    PACKET.HEADER.bodyLen + sizeof(PACKET.TAIL.crc);
 
-            if (packetSize > Constants::MAX_PACKET_LENGTH) {
-                packetSize = ERR; // Packet too large
+                if (packetSize > Constants::MAX_PACKET_LENGTH) {
+                    packetSize = ERR; // Packet too large
+                }
+
+                // Initialize the buffer to 0
+                if (memset(outBuffer, 0, Constants::MAX_PACKET_LENGTH) != outBuffer) {
+                    packetSize = ERR; // memset failure
+                }
+
+                // Serialize header fields
+                if (memcpy(&outBuffer[offset], &PACKET.HEADER.src, sizeof(PACKET.HEADER.src)) != &outBuffer[offset]) { packetSize = ERR; }
+                offset += sizeof(PACKET.HEADER.src);
+
+                if (memcpy(&outBuffer[offset], &PACKET.HEADER.dest, sizeof(PACKET.HEADER.dest)) != &outBuffer[offset]) { packetSize = ERR; }
+                offset += sizeof(PACKET.HEADER.dest);
+
+                if (memcpy(&outBuffer[offset], &PACKET.HEADER.flag, sizeof(PACKET.HEADER.flag)) != &outBuffer[offset]) { packetSize = ERR; }
+                offset += sizeof(PACKET.HEADER.flag);
+
+                if (memcpy(&outBuffer[offset], &PACKET.HEADER.seqNum, sizeof(PACKET.HEADER.seqNum)) != &outBuffer[offset]) { packetSize = ERR; }
+                offset += sizeof(PACKET.HEADER.seqNum);
+
+                if (memcpy(&outBuffer[offset], &PACKET.HEADER.totalCount, sizeof(PACKET.HEADER.totalCount)) != &outBuffer[offset]) { packetSize = ERR; }
+                offset += sizeof(PACKET.HEADER.totalCount);
+
+                if (memcpy(&outBuffer[offset], &PACKET.HEADER.bodyLen, sizeof(PACKET.HEADER.bodyLen)) != &outBuffer[offset]) { packetSize = ERR; }
+                offset += sizeof(PACKET.HEADER.bodyLen);
+
+                // Serialize body
+                if (memcpy(&outBuffer[offset], PACKET.BODY.data, PACKET.HEADER.bodyLen) != &outBuffer[offset]) { packetSize = ERR; }
+                offset += PACKET.HEADER.bodyLen;
+
+                // Serialize tail
+                if (memcpy(&outBuffer[offset], &PACKET.TAIL.crc, sizeof(PACKET.TAIL.crc)) != &outBuffer[offset]) { packetSize = ERR; }
             }
-
-            // Initialize the buffer to 0
-            if (memset(outBuffer, 0, Constants::MAX_PACKET_LENGTH) != outBuffer) {
-                packetSize = ERR; // memset failure
-            }
-
-            // Serialize header fields
-            if (memcpy(&outBuffer[offset], &PACKET.HEADER.src, sizeof(PACKET.HEADER.src)) != &outBuffer[offset]) { packetSize = ERR; }
-            offset += sizeof(PACKET.HEADER.src);
-
-            if (memcpy(&outBuffer[offset], &PACKET.HEADER.dest, sizeof(PACKET.HEADER.dest)) != &outBuffer[offset]) { packetSize = ERR; }
-            offset += sizeof(PACKET.HEADER.dest);
-
-            if (memcpy(&outBuffer[offset], &PACKET.HEADER.flag, sizeof(PACKET.HEADER.flag)) != &outBuffer[offset]) { packetSize = ERR; }
-            offset += sizeof(PACKET.HEADER.flag);
-
-            if (memcpy(&outBuffer[offset], &PACKET.HEADER.seqNum, sizeof(PACKET.HEADER.seqNum)) != &outBuffer[offset]) { packetSize = ERR; }
-            offset += sizeof(PACKET.HEADER.seqNum);
-
-            if (memcpy(&outBuffer[offset], &PACKET.HEADER.totalCount, sizeof(PACKET.HEADER.totalCount)) != &outBuffer[offset]) { packetSize = ERR; }
-            offset += sizeof(PACKET.HEADER.totalCount);
-
-            if (memcpy(&outBuffer[offset], &PACKET.HEADER.bodyLen, sizeof(PACKET.HEADER.bodyLen)) != &outBuffer[offset]) { packetSize = ERR; }
-            offset += sizeof(PACKET.HEADER.bodyLen);
-
-            // Serialize body
-            if (memcpy(&outBuffer[offset], PACKET.BODY.data, PACKET.HEADER.bodyLen) != &outBuffer[offset]) { packetSize = ERR; }
-            offset += PACKET.HEADER.bodyLen;
-
-            // Serialize tail
-            if (memcpy(&outBuffer[offset], &PACKET.TAIL.crc, sizeof(PACKET.TAIL.crc)) != &outBuffer[offset]) { packetSize = ERR; }
-
             return packetSize; // Success
         }
 
