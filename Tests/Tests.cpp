@@ -26,7 +26,6 @@ namespace Microsoft::VisualStudio::CppUnitTestFramework
     }
 }
 
-
 namespace PacketDataTests
 {
     TEST_CLASS(PacketDefTests)
