@@ -175,6 +175,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         //initially this is 0, if nothing is received it is -1, and only if we receive do we leave the idle state. We go back to the idle state after 1 instance of receiving nothing.
         if (bytesRead == 0)
         {
+            //setting the idle state
             state = Server::SERVER_STATE::IDLE;
         }
 
@@ -305,7 +306,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             break;
         }
         
-    
+        //lastly, after processing all requests and sending all image packets, return to the idle state
         state = Server::SERVER_STATE::IDLE;
         Sleep(250);
 
