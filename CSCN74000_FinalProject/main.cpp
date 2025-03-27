@@ -200,7 +200,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         try {
             // Check if it is a black-box packet or a request for an image
             switch (incomingFlag) {
-                case PacketDef::Flag::BB:
+                case PacketDef::Flag::BB://BB data received by server
                 {
                     const char* data = received.getData();
                     PositionData::Position pos(data);
@@ -232,7 +232,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
                     break;
                 }
-                case PacketDef::Flag::IMG:
+                case PacketDef::Flag::IMG://Image request received by server
                 {
 
                     int i = 0;
