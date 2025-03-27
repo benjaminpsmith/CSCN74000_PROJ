@@ -252,7 +252,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     int bytesToSend = ackReceived.Serialize(sendBuffer);  // SEND ACK
                     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
 
-                    state = Server::SERVER_STATE::SENDING;
+                    state = Server::SERVER_STATE::SENDING;//set sending state for as long as there are packets to transmit from the packet list.
                     menu << "Server is now sending";
                     sprintf(messageBuff, "%d image packets are being sent", static_cast<int>(packetList->size()));
                     menu << messageBuff;
