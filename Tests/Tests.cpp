@@ -250,6 +250,18 @@ namespace PacketDataTests
 
             Assert::AreEqual(originalPacket.getSrc(), deserializedPacket.getSrc(),
                 L"Source not correctly serialized/deserialized");
+			Assert::AreEqual(originalPacket.getDest(), deserializedPacket.getDest(),
+				L"Destination not correctly serialized/deserialized");
+			Assert::AreEqual(originalPacket.getFlag(), deserializedPacket.getFlag(),
+				L"Flag not correctly serialized/deserialized");
+			Assert::AreEqual(originalPacket.getSeqNum(), deserializedPacket.getSeqNum(),
+				L"Sequence number not correctly serialized/deserialized");
+			Assert::AreEqual(originalPacket.getTotalCount(), deserializedPacket.getTotalCount(),
+				L"Total count not correctly serialized/deserialized");
+			Assert::AreEqual(originalPacket.getBodyLen(), deserializedPacket.getBodyLen(),
+				L"Body length not correctly serialized/deserialized");
+			Assert::IsTrue(std::memcmp(originalPacket.getData(), deserializedPacket.getData(),
+				originalPacket.getBodyLen()) == 0, L"Body data not correctly serialized/deserialized");
             Assert::AreEqual(originalPacket.getCrc(), deserializedPacket.getCrc(),
                 L"CRC not correctly serialized/deserialized");
         }
