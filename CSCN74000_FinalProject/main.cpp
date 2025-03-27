@@ -42,6 +42,7 @@ int main(void){
     Menu mainMenu;
 
 
+
     std::thread menuThread([&] {
         int result = Server::menuThread(mainMenu, closeMenu);
         });
@@ -79,7 +80,7 @@ int main(void){
     
 }
 
-int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort, bool& shutdown, Menu& menu)
+int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort, bool& shutdown, Menu& log)
 {
     Server::ServerState state;
     ConnDetails connectionDetails;
@@ -90,6 +91,8 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     PacketData::PacketDef reauthResponse(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::AUTH_LOST, 1, 1);
     char sendBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
     char recvBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
+    char sendingMsg[10] = "Sending: ";
+    char receivingMsg[13] = "Receiving: ";
     char messageBuff[256] = { 0 };
 
     int attempts = 0;
@@ -145,8 +148,6 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         });
 
 
-
-
     while (!shutdown && !watchdogError)
     {
         incomingFlag = PacketDef::Flag::EMPTY;
@@ -154,20 +155,20 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
         {
             state = Server::SERVER_STATE::AWAITING_AUTH;
-            menu << "Server awaiting authentication...";
+            log << "Server awaiting authentication...";
 
             //Only the main thread would not have a packet provided to it. Other threads will have an auth bit set in a packet passed to it as a result of the parent thread receiving a packet with an auth bit.
             //The packet is passed to the new thread, and that new thread will use that packet as the starting point for the handshake
             if (!firstHandshakePacket)
             {
                 bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
-
+                log.writeToFileLog(receivingMsg, strlen(receivingMsg));
+                log.writeToFileLog(recvBuffer, bytesRead);
                 if (bytesRead > 0)
                 {
                     err = WSAGetLastError();
                     received = PacketDef(recvBuffer, bytesRead);
                 }
-                
             }
 
             firstHandshakePacket = false;
@@ -177,13 +178,13 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                 int retValue = flightConnection.accept(received, &rxSender);
                 if (retValue != 1)
                 {
-                    menu << "Error accepting connection.";
+                    log << "Error accepting connection.";
                 }
 
                 if (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
                 {
                     Sleep(1);
-                    menu << "Sleeping for one second...";
+                    log << "Sleeping for one second...";
                 }
             }
             else
@@ -200,11 +201,14 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             state = Server::SERVER_STATE::IDLE;
         }
 
-        menu << "Server is now idle and waiting to receive packets...";
+        log << "Server is now idle and waiting to receive packets...";
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
+        log.writeToFileLog(receivingMsg, strlen(receivingMsg));
+        log.writeToFileLog(recvBuffer, bytesRead);
+
         if (bytesRead < 0) {
             
-                menu << "Error in recvfrom() or timed out";
+                log << "Error in recvfrom() or timed out";
                 flightConnection.restartAuth();
                 int bytesToSend = reauthResponse.Serialize(sendBuffer);  // SEND REAUTH
                 int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
@@ -213,10 +217,10 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         else {
             //kick the waatchdog so that the watchdog doesnt set a boolean to shutdown the server
             watchDogKick = true;
-            menu << "Server received a command from client";
+            log << "Server received a command from client";
             // We are now receiving the black-box data from the client
             state = Server::SERVER_STATE::RECEIVING;
-            menu << "Server is now receiving";
+            log << "Server is now receiving";
             received = PacketDef(recvBuffer, bytesRead);    //RECV BB DATA
             incomingFlag = received.getFlag();
         }
@@ -229,15 +233,15 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     const char* data = received.getData();
                     PositionData::Position pos(data);
                     sprintf(messageBuff, "%.3f, %.3f, %.3f, %.3f, %.3f", pos.latitude, pos.longitude, pos.heading, pos.velocity, pos.altitude);
-                    menu << messageBuff;
+                    log << messageBuff;
                     // Create a position object from the string     
                     std::string filename = std::to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
                     bool retValue = pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
                     if (retValue) {
-                        menu << "Black-box data received and written to file.";
+                        log << "Black-box data received and written to file.";
                     }
                     else {
-                        menu << "Error writing black-box data to file.";
+                        log << "Error writing black-box data to file.";
                     }
 
                     // Send an ACK back to the client -  could potentially make one ahead of time and use it repeatedly since the body is empty, would only need to change dest?
@@ -248,12 +252,14 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     toSend.setTotalCount(1);
                     toSend.setBodyLen(0);
                     if (toSend.setData(nullptr, 0) == -1) {
-                        menu << "Error setting data: size too large or error allocating memory.";
+                        log << "Error setting data: size too large or error allocating memory.";
                     }
                     toSend.setCrc(0);
 
                     int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
                     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+                    log.writeToFileLog(sendingMsg, strlen(receivingMsg));
+                    log.writeToFileLog(sendBuffer, bytesToSend);
                     break;
                 }
                 case PacketDef::Flag::IMG://Image request received by server
@@ -265,7 +271,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     WeatherImage::Image weatherImage;
 
                     state = Server::SERVER_STATE::PROCESSING;
-                    menu << "Server is now processing";
+                    log << "Server is now processing";
 
                     weatherImage.loadImage();
                     packetList = weatherImage.getPacketList();
@@ -274,13 +280,15 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     ackReceived.setTotalCount(weatherImage.getPacketCount());
                     int bytesToSend = ackReceived.Serialize(sendBuffer);  // SEND ACK
                     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+                    log.writeToFileLog(sendingMsg, strlen(receivingMsg));
+                    log.writeToFileLog(sendBuffer, bytesToSend);
 
                     //Image request handling is the only case where the server enters the processing state.
                     //Only images can be larger than the packet body length.
                     state = Server::SERVER_STATE::SENDING;//set sending state for as long as there are packets to transmit from the packet list.
-                    menu << "Server is now sending";
+                    log << "Server is now sending";
                     sprintf(messageBuff, "%d image packets are being sent", static_cast<int>(packetList->size()));
-                    menu << messageBuff;
+                    log << messageBuff;
 
                     while (i < packetList->size())
                     {
@@ -289,11 +297,14 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
                         int bytesToSend = imagePacket->Serialize(sendBuffer);  // Send image packet after packet, and expect ACK responses for each
                         int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-
+                        log.writeToFileLog(sendingMsg, strlen(receivingMsg));
+                        log.writeToFileLog(sendBuffer, bytesToSend);
 
                         if (sendResult > 0)
                         {
                             bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
+                            log.writeToFileLog(receivingMsg, strlen(receivingMsg));
+                            log.writeToFileLog(recvBuffer, bytesRead);
 
                             if (bytesRead < 0)
                             {
@@ -313,7 +324,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
                         if (attempts >= 3)
                         {
-                            menu << "Failed to send image: 3 missed ACKS";
+                            log << "Failed to send image: 3 missed ACKS";
 
                             shutdown = true;
                             break;
@@ -342,7 +353,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
     int bytesToSend = shutdownResponse.Serialize(sendBuffer);  // SEND shutdown
     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-    menu << "Shutting down";
+    log << "Shutting down";
 
 
     shutdown = true;
