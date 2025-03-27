@@ -231,7 +231,7 @@ namespace PacketDataTests
                 L"Serialized packet length should be within max length");
         }
 
-        TEST_METHOD(Serialize_Deserialize_RoundTripWorks)
+        TEST_METHOD(Serialize_Deserialize_Repeat_Success)
         {
             PacketData::PacketDef originalPacket(0xA0B1C2, 0xD3E4F5,
                 PacketData::PacketDef::Flag::BB, 1, 10);
@@ -419,7 +419,7 @@ namespace PositionDataTests
                 serializeResult, L"Serialization should return correct size");
         }
 
-        TEST_METHOD(Serialize_Deserialize_RoundTripWorks)
+        TEST_METHOD(Serialize_Deserialize_Repeat_Success)
         {
             PositionData::Position original(40.7128, -74.0060, 90.0, 500.0, 5000.0);
             char buffer[POSITION_SIZE];
