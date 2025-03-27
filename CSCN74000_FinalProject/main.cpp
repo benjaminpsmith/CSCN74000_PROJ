@@ -99,14 +99,18 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     int addrLength;
     int bytesRead;
     std::thread timerThread;
-    bool secondElapsed;
+    bool thirtySecondElapsed;
+    bool watchDogKick;
     int err;
     int bindToRetVal;
     PacketDef::Flag incomingFlag;
+    bool watchdogError;
 
+    watchdogError = false;
+    watchDogKick = true;
     bindToRetVal = 0;
     state = Server::SERVER_STATE::AWAITING_AUTH;
-    secondElapsed = false;
+    thirtySecondElapsed = false;
     shutdown = false;
     bytesRead = 0;
     err = 0;
@@ -125,8 +129,25 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     //server states:
     //awaiting, idle, processing, sending or receiving
 
+    timerThread = std::thread([&] {
+            while (!shutdown)
+            {
+                Sleep(60000);
+                if (watchDogKick == false)
+                {
+                    watchdogError = true;
+                }
+                else
+                {
+                    watchDogKick = false;
+                }
+            }
+        });
 
-    while (!shutdown)
+
+
+
+    while (!shutdown && !watchdogError)
     {
         incomingFlag = PacketDef::Flag::EMPTY;
 
@@ -190,6 +211,8 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                 incomingFlag = PacketDef::Flag::EMPTY;
         }
         else {
+            //kick the waatchdog so that the watchdog doesnt set a boolean to shutdown the server
+            watchDogKick = true;
             menu << "Server received a command from client";
             // We are now receiving the black-box data from the client
             state = Server::SERVER_STATE::RECEIVING;
@@ -312,6 +335,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         state = Server::SERVER_STATE::IDLE;
         Sleep(250);
 
+
     }
 
     //send command to shutdown
@@ -319,6 +343,10 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     int bytesToSend = shutdownResponse.Serialize(sendBuffer);  // SEND shutdown
     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
     menu << "Shutting down";
+
+
+    shutdown = true;
+    timerThread.join();
 
     return 1;
 }
