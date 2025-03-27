@@ -4,7 +4,7 @@
 #include "image.h"
 #include <thread>
 #include "menu.h"
-
+#include <atomic>
 using namespace ConnectionData;
 
 
@@ -100,7 +100,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     int bytesRead;
     std::thread timerThread;
     bool thirtySecondElapsed;
-    bool watchDogKick;
+    std::atomic<bool> watchDogKick;
     int err;
     int bindToRetVal;
     PacketDef::Flag incomingFlag;
