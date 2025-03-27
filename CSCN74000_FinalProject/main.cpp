@@ -197,106 +197,114 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             incomingFlag = received.getFlag();
         }
 
-
-        // Check if it is a black-box packet or a request for an image
-        switch (incomingFlag) {
-            case PacketDef::Flag::BB:   
-            {
-			    const char* data = received.getData();
-                PositionData::Position pos(data);
-                sprintf(messageBuff, "%.3f, %.3f, %.3f, %.3f, %.3f", pos.latitude, pos.longitude, pos.heading, pos.velocity, pos.altitude);
-                menu << messageBuff;
-                                              // Create a position object from the string     
-                std::string filename = std::to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
-                bool retValue = pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
-                if (retValue) {
-                    menu << "Black-box data received and written to file.";
-                }
-                else {
-				    menu << "Error writing black-box data to file.";
-                }
-
-                // Send an ACK back to the client -  could potentially make one ahead of time and use it repeatedly since the body is empty, would only need to change dest?
-                toSend.setSrc(SERVER_ID);
-                toSend.setDest(received.getSrc());
-                toSend.setFlag(PacketDef::Flag::ACK);
-                toSend.setSeqNum(1);
-                toSend.setTotalCount(1);
-                toSend.setBodyLen(0);
-			    if (toSend.setData(nullptr, 0) == -1) {
-                    menu << "Error setting data: size too large or error allocating memory.";
-			    }
-                toSend.setCrc(0);
-            
-                int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
-                int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-                break;
-            }
-            case PacketDef::Flag::IMG:
-            {
-            
-                int i = 0;
-               
-                const std::vector<PacketDef*>* packetList = nullptr;
-                WeatherImage::Image weatherImage;
-
-                state = Server::SERVER_STATE::PROCESSING;
-                menu << "Server is now processing";
-
-                weatherImage.loadImage();
-                packetList = weatherImage.getPacketList();
-
-                //ACK for the request
-                ackReceived.setTotalCount(weatherImage.getPacketCount());
-                int bytesToSend = ackReceived.Serialize(sendBuffer);  // SEND ACK
-                int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-            
-                state = Server::SERVER_STATE::SENDING;
-                menu << "Server is now sending";
-                sprintf(messageBuff, "%d image packets are being sent", static_cast<int>(packetList->size()));
-                menu << messageBuff;
-
-                while (i < packetList->size())
+        try {
+            // Check if it is a black-box packet or a request for an image
+            switch (incomingFlag) {
+                case PacketDef::Flag::BB:
                 {
-                    PacketDef* imagePacket = packetList->at(i);
-                    bytesRead = 0;
+                    const char* data = received.getData();
+                    PositionData::Position pos(data);
+                    sprintf(messageBuff, "%.3f, %.3f, %.3f, %.3f, %.3f", pos.latitude, pos.longitude, pos.heading, pos.velocity, pos.altitude);
+                    menu << messageBuff;
+                    // Create a position object from the string     
+                    std::string filename = std::to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
+                    bool retValue = pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
+                    if (retValue) {
+                        menu << "Black-box data received and written to file.";
+                    }
+                    else {
+                        menu << "Error writing black-box data to file.";
+                    }
 
-                    int bytesToSend = imagePacket->Serialize(sendBuffer);  // Send image packet after packet, and expect ACK responses for each
+                    // Send an ACK back to the client -  could potentially make one ahead of time and use it repeatedly since the body is empty, would only need to change dest?
+                    toSend.setSrc(SERVER_ID);
+                    toSend.setDest(received.getSrc());
+                    toSend.setFlag(PacketDef::Flag::ACK);
+                    toSend.setSeqNum(1);
+                    toSend.setTotalCount(1);
+                    toSend.setBodyLen(0);
+                    if (toSend.setData(nullptr, 0) == -1) {
+                        menu << "Error setting data: size too large or error allocating memory.";
+                    }
+                    toSend.setCrc(0);
+
+                    int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
+                    int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+                    break;
+                }
+                case PacketDef::Flag::IMG:
+                {
+
+                    int i = 0;
+
+                    const std::vector<PacketDef*>* packetList = nullptr;
+                    WeatherImage::Image weatherImage;
+
+                    state = Server::SERVER_STATE::PROCESSING;
+                    menu << "Server is now processing";
+
+                    weatherImage.loadImage();
+                    packetList = weatherImage.getPacketList();
+
+                    //ACK for the request
+                    ackReceived.setTotalCount(weatherImage.getPacketCount());
+                    int bytesToSend = ackReceived.Serialize(sendBuffer);  // SEND ACK
                     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
 
+                    state = Server::SERVER_STATE::SENDING;
+                    menu << "Server is now sending";
+                    sprintf(messageBuff, "%d image packets are being sent", static_cast<int>(packetList->size()));
+                    menu << messageBuff;
 
-                    if (sendResult > 0)
+                    while (i < packetList->size())
                     {
-                        bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
+                        PacketDef* imagePacket = packetList->at(i);
+                        bytesRead = 0;
 
-                        if (bytesRead < 0)
+                        int bytesToSend = imagePacket->Serialize(sendBuffer);  // Send image packet after packet, and expect ACK responses for each
+                        int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+
+
+                        if (sendResult > 0)
                         {
-                            //timeout
-                            attempts++;
-                        }
-                        else
-                        {
-                            //success
-                            received = PacketDef(recvBuffer, bytesRead);
-                            if (received.getFlag() == PacketDef::Flag::ACK)
+                            bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
+
+                            if (bytesRead < 0)
                             {
-                                i++;
+                                //timeout
+                                attempts++;
+                            }
+                            else
+                            {
+                                //success
+                                received = PacketDef(recvBuffer, bytesRead);
+                                if (received.getFlag() == PacketDef::Flag::ACK)
+                                {
+                                    i++;
+                                }
                             }
                         }
-                    }
-                
-                    if (attempts >= 3)
-                    {
-                        menu << "Failed to send image: 3 missed ACKS";
 
-                        shutdown = true;
-                        break;
+                        if (attempts >= 3)
+                        {
+                            menu << "Failed to send image: 3 missed ACKS";
+
+                            shutdown = true;
+                            break;
+                        }
                     }
+
+                    break;
                 }
-                
-                break;
             }
         }
+        catch (...)
+        {
+            //error, tell the client to shutdown
+            std::cout << "Fatal error. Shutting down" << std::endl;
+            break;
+        }
+        
     
         state = Server::SERVER_STATE::IDLE;
         Sleep(250);
