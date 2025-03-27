@@ -212,7 +212,7 @@ int main(void) {
 
                         std::cout << "Received " << packetsToReceive << " Image packets" << std::endl;
 
-                        //write image to file
+                        //write image to file - 
                         if (imgReceived.saveImage())
                         {
                             std::cout << "Successfully saved the transmitted image" << std::endl;
