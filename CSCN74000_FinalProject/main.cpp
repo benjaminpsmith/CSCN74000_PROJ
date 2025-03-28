@@ -92,7 +92,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     char sendBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
     char recvBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
     char sendingMsg[10] = "Sending: ";
-    char receivingMsg[13] = "Receiving: ";
+    char receivingMsg[12] = "Receiving: ";
     char messageBuff[256] = { 0 };
 
     int attempts = 0;
@@ -152,7 +152,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     {
         incomingFlag = PacketDef::Flag::EMPTY;
 
-        while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED)
+        while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED && !watchdogError)
         {
             state = Server::SERVER_STATE::AWAITING_AUTH;
             log << "Server awaiting authentication...";
@@ -290,7 +290,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     sprintf(messageBuff, "%d image packets are being sent", static_cast<int>(packetList->size()));
                     log << messageBuff;
 
-                    while (i < packetList->size())
+                    while (i < packetList->size() && !watchdogError)
                     {
                         PacketDef* imagePacket = packetList->at(i);
                         bytesRead = 0;
