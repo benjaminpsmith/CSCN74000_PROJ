@@ -20,6 +20,8 @@ public:
 		int converted = 0;
 		char* packetBuff = new char[LOG_ENTRY_MAX_LEN];
 		char* hexBuff = new char[LOG_ENTRY_MAX_LEN];
+		memset(packetBuff, 0, LOG_ENTRY_MAX_LEN);
+		memset(hexBuff, 0, LOG_ENTRY_MAX_LEN);
 		packet.Serialize(packetBuff);
 		converted = sprintf(hexBuff, "%x", packetBuff);
 		

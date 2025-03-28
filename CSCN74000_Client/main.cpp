@@ -105,7 +105,7 @@ int main(void) {
 
 		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED && !shutdown)   // Loop
 		{
-            bool send_blackbox_data = true;
+            bool send_blackbox_data = false;
 
 			if (send_blackbox_data) { // Send black box data
 

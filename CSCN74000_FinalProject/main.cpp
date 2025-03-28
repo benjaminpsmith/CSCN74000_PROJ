@@ -192,7 +192,6 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             {
                 flightConnection.restartAuth();
             }
-            
         }
 
         //initially this is 0, if nothing is received it is -1, and only if we receive do we leave the idle state. We go back to the idle state after 1 instance of receiving nothing.
@@ -354,14 +353,14 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     }
 
     //send command to shutdown
-
+    watchDogKick = false;
+    shutdown = true;
     int bytesToSend = shutdownResponse.Serialize(sendBuffer);  // SEND shutdown
     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
     log << shutdownResponse;
     log << "Shutting down";
 
-
-    shutdown = true;
+   
     timerThread.join();
 
     return 1;
