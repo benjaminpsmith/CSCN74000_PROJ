@@ -79,6 +79,7 @@ int main(void) {
 						std::cerr << "Error establishing connection." << std::endl;
                     }
                 }
+                
             }
             
             if (flightConnection.getAuthenticationState() != ConnectionData::ConnState::AUTHENTICATED)
@@ -92,9 +93,9 @@ int main(void) {
 		std::cout << " Client has been authenticated." << std::endl;
 		std::cout << " Client will now alternate between sending black box data to the server and requests for images.\n" << std::endl;
 
-		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED)   // Loop
+		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED && !shutdown)   // Loop
 		{
-            bool send_blackbox_data = false;
+            bool send_blackbox_data = true;
 
 			if (send_blackbox_data) { // Send black box data
 
@@ -137,7 +138,19 @@ int main(void) {
 					if (received.getFlag() != PacketData::PacketDef::Flag::ACK)
 					{
 						std::cerr << "Error: No ACK received." << std::endl;
+                        
 					}
+                    if (received.getFlag() == PacketData::PacketDef::Flag::SHUTDOWN)
+                    {
+                        std::cout << "Received shutdown message" << std::endl;
+                        shutdown = true;
+                        break;
+                    }
+                    if (received.getFlag() == PacketData::PacketDef::AUTH_LOST)
+                    {
+                        flightConnection.restartAuth();
+                        break;
+                    }
                 } 
 			}
             else if (!send_blackbox_data) {   // Request an image
@@ -163,6 +176,10 @@ int main(void) {
 
                     //Get Response ACK for Request
                     bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, 0, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
+                    if (received.getFlag() == PacketData::PacketDef::AUTH_LOST)
+                    {
+                        flightConnection.restartAuth();
+                    }
                     received = PacketDef(recvBuffer, bytesRead);
 
                     flag = received.getFlag();
@@ -181,6 +198,11 @@ int main(void) {
                             
                             bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, 0, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
 
+                            if (received.getFlag() == PacketData::PacketDef::AUTH_LOST)
+                            {
+                                flightConnection.restartAuth();
+                                break;
+                            }
                             received = PacketDef(recvBuffer, bytesRead);
                             imgReceived.addSome(received);
 

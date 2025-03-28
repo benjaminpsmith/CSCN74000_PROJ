@@ -59,13 +59,16 @@ namespace ConnectionData {
 		uint8_t flags;
 		int authBit;
 		int ackBit;
+		int restartAuth;
 		char buffer[PacketData::Constants::MAX_PACKET_LENGTH];
-
+		
+		restartAuth = 0;
 		ret = 0;
 		flags = handshakePacket.getFlag();
 
-		authBit = flags & 0x4;
-		ackBit = flags & 0x8;
+		authBit = flags & PacketData::PacketDef::Flag::AUTH;
+		ackBit = flags & PacketData::PacketDef::Flag::ACK;
+		restartAuth = flags & PacketData::PacketDef::Flag::AUTH_LOST;
 
 		if (state == ConnState::UNAUTHENTICATED && !authBit)
 		{
@@ -100,6 +103,11 @@ namespace ConnectionData {
 			ret = 1;
 		}
 
+		if (restartAuth == PacketData::PacketDef::Flag::AUTH_LOST)
+		{
+			state = ConnState::UNAUTHENTICATED;
+		}
+
 		return 1;
 	}
 
@@ -122,6 +130,11 @@ namespace ConnectionData {
 	void Connection::setPassphrase(const char* passphrase)
 	{
 		this->passphrase = passphrase;
+	}
+
+	void Connection::restartAuth()
+	{
+		this->state = ConnState::UNAUTHENTICATED;
 	}
 
 	int Connection::bindTo(fd* socketFd, address* targetAddress)

@@ -135,6 +135,7 @@
   <ItemGroup>
     <ClInclude Include="connection.h" />
     <ClInclude Include="image.h" />
+    <ClInclude Include="menu.h" />
     <ClInclude Include="packet.h" />
   </ItemGroup>
   <ItemGroup>

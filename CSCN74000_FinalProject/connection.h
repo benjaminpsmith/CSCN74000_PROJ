@@ -61,6 +61,7 @@ namespace ConnectionData {
 		bool isAuthenticated();
 		ConnState getAuthenticationState();
 		void setPassphrase(const char* passphrase);
+		void restartAuth();
 
 		~Connection();
 	};
