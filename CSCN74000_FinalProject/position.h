@@ -145,7 +145,7 @@ namespace PositionData {
             return ATTRIBUTE_COUNT;
         }
 
-        static unsigned int GetSerializedSize() {
+        static int GetSerializedSize() {
             return sizeof(double) * ATTRIBUTE_COUNT;
         }
     };
