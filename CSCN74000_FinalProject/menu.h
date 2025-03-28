@@ -5,6 +5,7 @@
 #include "logger.h"
 
 #define LOGMSG_LIMIT 20
+#define LOG_ENTRY_MAX_LEN 512
 class Log
 {
 	std::vector<std::string> log;
@@ -13,6 +14,18 @@ class Log
 public:
 
 	Log(const char* path) : fileLogger(path) {};
+
+	const Log& operator<<(PacketDef& packet)
+	{
+		int converted = 0;
+		char* packetBuff = new char[LOG_ENTRY_MAX_LEN];
+		char* hexBuff = new char[LOG_ENTRY_MAX_LEN];
+		packet.Serialize(packetBuff);
+		converted = sprintf(hexBuff, "%x", packetBuff);
+		
+		writeToFile(hexBuff, converted);
+		return *this;
+	}
 
 	const Log& operator<<(const char* logMessage)
 	{
@@ -45,11 +58,13 @@ public:
 	
 	bool writeToFile(char* logMessage, int length)
 	{
+
 		if (fileLogger.isOpen())
 		{
 			fileLogger.write(logMessage, length);
 			return true;
 		}
+
 		return false;
 	}
 
@@ -71,6 +86,12 @@ public:
 	Menu(const char* path = DEFAULT_LOG_PATH): messages(path)
 	{
 
+	}
+
+	const Menu& operator<<(PacketDef& packet)
+	{
+		messages << packet;
+		return *this;
 	}
 
 	const Menu& operator<<(const char* logMessage)

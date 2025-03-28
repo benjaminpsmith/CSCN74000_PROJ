@@ -58,6 +58,9 @@ int main(void) {
 
     while (!shutdown)
     { 
+        std::system("cls");
+        log.printLog();
+
         while (flightConnection.getAuthenticationState() != ConnectionData::ConnState::AUTHENTICATED)
         {
             if (flightConnection.getAuthenticationState() == ConnectionData::ConnState::UNAUTHENTICATED)
@@ -73,12 +76,13 @@ int main(void) {
             {
                 bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
                 log.writeToFileLog(receivingMsg, strlen(receivingMsg));
-                log.writeToFileLog(recvBuffer, bytesRead);
+                
                 err = WSAGetLastError();
 
                 if (bytesRead > 0)
                 {
                     received = PacketData::PacketDef(recvBuffer, bytesRead);
+                    log << received;
                     int connectionSuccess = flightConnection.establishConnection(received, &rxSender);
                     if (connectionSuccess != 1)
                     {
@@ -134,15 +138,15 @@ int main(void) {
 					int sendToRetVale = sendto(connectionDetails.socket, buffer, totalSize, 0, reinterpret_cast<struct sockaddr*>(&rxSender), sizeof(rxSender));
 					log << "Sent black box data.\n";
                     log.writeToFileLog(sendingMsg, strlen(receivingMsg));
-                    log.writeToFileLog(buffer, totalSize);
+                    log << blackbox_data;
 
                     // Receive a response
 					bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, 0, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
                     log.writeToFileLog(receivingMsg, strlen(receivingMsg));
-                    log.writeToFileLog(recvBuffer, bytesRead);
+                    
 
 					received = PacketData::PacketDef(recvBuffer, bytesRead);
-
+                    log << received;
 					// Check for ACK
 					if (received.getFlag() != PacketData::PacketDef::Flag::ACK)
 					{
@@ -183,18 +187,19 @@ int main(void) {
                     int sendToRetVal = sendto(connectionDetails.socket, buffer, totalSize, 0, reinterpret_cast<struct sockaddr*>(&rxSender), sizeof(rxSender));
                     log << "Sent image request.\n";
                     log.writeToFileLog(sendingMsg, strlen(receivingMsg));
-                    log.writeToFileLog(buffer, totalSize);
+                    log << imgRequest;
 
                     //Get Response ACK for Request
                     bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, 0, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
                     log.writeToFileLog(receivingMsg, strlen(receivingMsg));
-                    log.writeToFileLog(recvBuffer, bytesRead);
+                    
 
                     if (received.getFlag() == PacketData::PacketDef::AUTH_LOST)
                     {
                         flightConnection.restartAuth();
                     }
                     received = PacketDef(recvBuffer, bytesRead);
+                    log << received;
 
                     flag = received.getFlag();
                     if (flag == PacketDef::Flag::SHUTDOWN)
@@ -212,7 +217,6 @@ int main(void) {
                             
                             bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, 0, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
                             log.writeToFileLog(receivingMsg, strlen(receivingMsg));
-                            log.writeToFileLog(recvBuffer, bytesRead);
 
                             if (received.getFlag() == PacketData::PacketDef::AUTH_LOST)
                             {
@@ -220,12 +224,13 @@ int main(void) {
                                 break;
                             }
                             received = PacketDef(recvBuffer, bytesRead);
+                            log << received;
                             imgReceived.addSome(received);
 
                             int bytesToSend = ackReceived.Serialize(buffer);  // SEND ACK
                             int sendResult = sendto(connectionDetails.socket, buffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
                             log.writeToFileLog(sendingMsg, strlen(receivingMsg));
-                            log.writeToFileLog(buffer, totalSize);
+                            log << ackReceived;
                         }
 
                         log << (std::string("Received") + std::to_string(packetsToReceive) + std::string(" Image packets\n")).c_str();

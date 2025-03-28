@@ -163,11 +163,12 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             {
                 bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
                 log.writeToFileLog(receivingMsg, strlen(receivingMsg));
-                log.writeToFileLog(recvBuffer, bytesRead);
+                
                 if (bytesRead > 0)
                 {
                     err = WSAGetLastError();
                     received = PacketDef(recvBuffer, bytesRead);
+                    log << received;
                 }
             }
 
@@ -204,7 +205,6 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         log << "Server is now idle and waiting to receive packets...";
         bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
         log.writeToFileLog(receivingMsg, strlen(receivingMsg));
-        log.writeToFileLog(recvBuffer, bytesRead);
 
         if (bytesRead < 0) {
             
@@ -212,6 +212,8 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                 flightConnection.restartAuth();
                 int bytesToSend = reauthResponse.Serialize(sendBuffer);  // SEND REAUTH
                 int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+                log.writeToFileLog(sendingMsg, strlen(sendingMsg));
+                log << reauthResponse;
                 incomingFlag = PacketDef::Flag::EMPTY;
         }
         else {
@@ -222,6 +224,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             state = Server::SERVER_STATE::RECEIVING;
             log << "Server is now receiving";
             received = PacketDef(recvBuffer, bytesRead);    //RECV BB DATA
+            log << received;
             incomingFlag = received.getFlag();
         }
 
@@ -259,7 +262,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
                     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
                     log.writeToFileLog(sendingMsg, strlen(receivingMsg));
-                    log.writeToFileLog(sendBuffer, bytesToSend);
+                    log << toSend;
                     break;
                 }
                 case PacketDef::Flag::IMG://Image request received by server
@@ -281,7 +284,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     int bytesToSend = ackReceived.Serialize(sendBuffer);  // SEND ACK
                     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
                     log.writeToFileLog(sendingMsg, strlen(receivingMsg));
-                    log.writeToFileLog(sendBuffer, bytesToSend);
+                    log << ackReceived;
 
                     //Image request handling is the only case where the server enters the processing state.
                     //Only images can be larger than the packet body length.
@@ -298,13 +301,13 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                         int bytesToSend = imagePacket->Serialize(sendBuffer);  // Send image packet after packet, and expect ACK responses for each
                         int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
                         log.writeToFileLog(sendingMsg, strlen(receivingMsg));
-                        log.writeToFileLog(sendBuffer, bytesToSend);
+                        log << *imagePacket;
 
                         if (sendResult > 0)
                         {
                             bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
                             log.writeToFileLog(receivingMsg, strlen(receivingMsg));
-                            log.writeToFileLog(recvBuffer, bytesRead);
+                            
 
                             if (bytesRead < 0)
                             {
@@ -315,6 +318,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                             {
                                 //success
                                 received = PacketDef(recvBuffer, bytesRead);
+                                log << received;
                                 if (received.getFlag() == PacketDef::Flag::ACK)
                                 {
                                     i++;
@@ -353,6 +357,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
     int bytesToSend = shutdownResponse.Serialize(sendBuffer);  // SEND shutdown
     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+    log << shutdownResponse;
     log << "Shutting down";
 
 

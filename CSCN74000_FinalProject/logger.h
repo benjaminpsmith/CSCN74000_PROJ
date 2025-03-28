@@ -11,7 +11,7 @@ class Logger {
 public:
 	Logger(const char* path = DEFAULT_LOG_PATH)
 	{
-		this->msgOutFileStream.open(path, std::fstream::out);
+		this->msgOutFileStream.open(path, std::fstream::out | std::ios::app);
 
 	}
 	bool isOpen()
@@ -26,7 +26,7 @@ public:
 		if (isOpen())
 		{
 			msgOutFileStream.write(pTime, strlen(pTime));
-			msgOutFileStream.write(": ", 2);
+			//msgOutFileStream.write(": ", 2);
 			msgOutFileStream.write(msg, length);
 			msgOutFileStream << std::endl;
 		}
