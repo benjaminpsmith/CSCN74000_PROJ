@@ -6,10 +6,17 @@
 
 #define LOGMSG_LIMIT 20
 #define LOG_ENTRY_MAX_LEN 512
+
 class Log
 {
+
+#ifdef TESTING
+public:
+#else
+private:
+#endif
 	std::vector<std::string> log;
-	Logger fileLogger;
+	debug::Logger fileLogger;
 
 public:
 
@@ -81,6 +88,13 @@ public:
 
 class Menu
 {
+
+#ifdef TESTING
+public:
+#else
+private:
+#endif
+
 	Log messages;
 
 public:
@@ -105,6 +119,11 @@ public:
 	bool writeToFileLog(char* msg, int length)
 	{
 		return messages.writeToFile(msg, length);
+	}
+
+	Log* getLog()
+	{
+		return &this->messages;
 	}
 
 	void printLog()

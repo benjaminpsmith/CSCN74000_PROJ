@@ -8,6 +8,7 @@
 namespace PositionData {
 
     class Position {
+#
     public:
         static constexpr unsigned int ATTRIBUTE_COUNT = 5;
         double latitude = 0.0;

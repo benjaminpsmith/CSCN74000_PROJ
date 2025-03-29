@@ -5,36 +5,51 @@
 #define MAX_LOG_PATH_LEN 1024
 #define DEFAULT_LOG_PATH "log.txt"
 
-class Logger {
-	std::ofstream msgOutFileStream;
+namespace debug
+{
+	class Logger {
 
-public:
-	Logger(const char* path = DEFAULT_LOG_PATH)
-	{
-		this->msgOutFileStream.open(path, std::fstream::out | std::ios::app);
+#ifdef TESTING
+	public:
+#else
+	private:
+#endif
+		std::ofstream msgOutFileStream;
 
-	}
-	bool isOpen()
-	{
-		return this->msgOutFileStream.is_open();
-	}
-	const Logger& write(const char* msg, int length)
-	{
-		std::tm tm{};
-		const std::time_t time = std::time(nullptr);
-		char* pTime = std::asctime(std::localtime(&time));
-		if (isOpen())
+	public:
+		Logger(const char* path = DEFAULT_LOG_PATH)
 		{
-			msgOutFileStream.write(pTime, strlen(pTime));
-			//msgOutFileStream.write(": ", 2);
-			msgOutFileStream.write(msg, length);
-			msgOutFileStream << std::endl;
+			this->msgOutFileStream.open(path, std::fstream::out | std::ios::app);
+
 		}
-		
-		return *this;
-	}
-	~Logger()
-	{
-		this->msgOutFileStream.close();
-	}
-};
+		bool isOpen()
+		{
+			return this->msgOutFileStream.is_open();
+		}
+		const Logger& write(const char* msg, int length)
+		{
+			std::tm tm{};
+			const std::time_t time = std::time(nullptr);
+			char* pTime = nullptr;
+
+			pTime = std::asctime(std::localtime(&time));
+
+			if (isOpen())
+			{
+				if (pTime != nullptr)
+				{
+					msgOutFileStream.write(pTime, strlen(pTime));
+				}
+
+				msgOutFileStream.write(msg, length);
+				msgOutFileStream << std::endl;
+			}
+
+			return *this;
+		}
+		~Logger()
+		{
+			this->msgOutFileStream.close();
+		}
+	};
+}

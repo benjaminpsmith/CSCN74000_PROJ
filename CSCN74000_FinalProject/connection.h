@@ -43,7 +43,12 @@ namespace ConnectionData {
 	};
 
 	class Connection {
+
+#ifdef TESTING
+	public:
+#else
 	private:
+#endif
 		WSADATA wsaData;
 		ConnState state;
 		const char* passphrase;
