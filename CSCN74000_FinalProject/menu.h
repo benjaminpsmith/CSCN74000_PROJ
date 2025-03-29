@@ -32,6 +32,7 @@ public:
 		int converted = 0;
 		char packetBuff[LOG_ENTRY_MAX_LEN];
 		char hexBuff[LOG_ENTRY_MAX_LEN];
+		int bytes = 0;
 
 		setRet = memset(&packetBuff[0], 0, LOG_ENTRY_MAX_LEN);
 		if (setRet == nullptr)
@@ -46,9 +47,10 @@ public:
 			throw ERROR_NULL_PTR;
 		}
 
-		packet.Serialize(&packetBuff[0]);
-		converted = sprintf_s(&hexBuff[0], LOG_ENTRY_MAX_LEN, &format[0], &packetBuff[0], LOG_ENTRY_MAX_LEN);
-		
+		bytes = packet.Serialize(&packetBuff[0]);
+
+		converted = sprintf_s(&hexBuff[0], LOG_ENTRY_MAX_LEN, &format[0], &packetBuff[0], bytes);
+
 		if (!writeToFile(&hexBuff[0], converted))
 		{
 			throw MENU_FILEWRITEEXCEPTION;
@@ -128,7 +130,7 @@ public:
 
 	}
 
-	const Menu& operator<<(const PacketData::PacketDef& packet)
+	const Menu& operator<<(PacketData::PacketDef& packet)
 	{
 		messages << packet;
 		return *this;

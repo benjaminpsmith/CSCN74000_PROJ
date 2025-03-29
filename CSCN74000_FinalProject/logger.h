@@ -29,7 +29,7 @@ namespace debug
 			return this->msgOutFileStream.is_open();
 		}
 
-		int Logger& write(const char* msg, int length)
+		int write(const char* msg, int length)
 		{
 			std::tm tm{};
 			const std::time_t time = std::time(nullptr);
@@ -55,7 +55,7 @@ namespace debug
 				msgOutFileStream << std::endl;
 			}
 
-			return length
+			return length;
 		}
 		~Logger()
 		{

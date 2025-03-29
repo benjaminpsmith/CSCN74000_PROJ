@@ -40,7 +40,6 @@ int main(void){
     bool shutdown = false;
     bool closeMenu = false;
     Menu mainMenu;
-    char posFormat[FOMRAT_LENGTH] = POSITION_PRINT_FORMAT;
 
 
 
@@ -105,6 +104,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
     const char* SECUREPASSWD = SECURE_PASSWORD;
     int attempts = 0;
     int packetCount = 0;
+    char posFormat[FOMRAT_LENGTH] = POSITION_PRINT_FORMAT;
 
     address rxSender;
     int addrLength;
@@ -274,7 +274,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
                 {
                     const char* data = received.getData();
                     PositionData::Position pos(data);
-                    bytesPrinted = sprintf(&messageBuff[0], posFormat, pos.latitude, pos.longitude, pos.heading, pos.velocity, pos.altitude);
+                    bytesPrinted = sprintf(&messageBuff[0], &posFormat[0], pos.latitude, pos.longitude, pos.heading, pos.velocity, pos.altitude);
                     log << messageBuff;
                     // Create a position object from the string     
                     std::string filename = std::to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data

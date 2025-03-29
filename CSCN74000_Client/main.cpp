@@ -5,6 +5,9 @@
 #include <thread>
 #include "menu.h"
 
+#define RECV_MSG_MAX_LEN 12
+#define SEND_MSG_MAX_LEN 10
+
 // using namespace ;
 
 int main(void) {
@@ -23,7 +26,7 @@ int main(void) {
     int err;
     char sendingMsg[10] = "Sending: ";
     char receivingMsg[13] = "Receiving: ";
-    char* clsCmd = "cls";
+    char clsCmd[4] = "cls";
     const uint16_t PORT = SERVER_PORT;
     const char* IPADDRESS = SERVER_IP;
     const char* SECUREPASSWD = SECURE_PASSWORD;
@@ -122,7 +125,7 @@ int main(void) {
 
         innerContinue = true;
 
-		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED && !shutdown && innerContinue = true;)   // Loop
+		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED && !shutdown && innerContinue)   // Loop
 		{
             bool send_blackbox_data = false;
 
@@ -242,16 +245,16 @@ int main(void) {
                     {
                         flightConnection.restartAuth();
                     }
-                    received = PacketDef(&recvBuffer[0], bytesRead);
+                    received = PacketData::PacketDef(&recvBuffer[0], bytesRead);
                     log << received;
 
                     flag = received.getFlag();
-                    if (flag == PacketDef::Flag::SHUTDOWN)
+                    if (flag == PacketData::PacketDef::Flag::SHUTDOWN)
                     {
                         shutdown = true;
                         innerContinue = false;
                     }
-                    else if (flag == PacketDef::ACK)
+                    else if (flag == PacketData::PacketDef::ACK)
                     {
                         packetsToReceive = received.getTotalCount();
 
@@ -276,7 +279,7 @@ int main(void) {
                                 flightConnection.restartAuth();
                                 imageLoopContinue = false;
                             }
-                            received = PacketDef(&recvBuffer[0], bytesRead);
+                            received = PacketData::PacketDef(&recvBuffer[0], bytesRead);
                             log << received;
                             imgReceived.addSome(received);
 
