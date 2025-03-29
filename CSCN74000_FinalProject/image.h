@@ -41,8 +41,8 @@ namespace WeatherImage {
 			packetizedLen = 0;
 			sequence = 1;
 			bytesRead = 0;
-
-
+			const int length = PacketData::Constants::MAX_BODY_LENGTH;
+			char buffer[length];
 
 			if (this->packetizedImage.size())
 			{
@@ -67,14 +67,13 @@ namespace WeatherImage {
 						if ((imageSize - i) < PacketData::Constants::MAX_BODY_LENGTH)
 						{
 							packetizedLen = (imageSize - i);
+							bytesRead = pFile->sgetn(buffer, packetizedLen);
 						}
 						else
 						{
 							packetizedLen = PacketData::Constants::MAX_BODY_LENGTH;
+							bytesRead = pFile->sgetn(buffer, packetizedLen);
 						}
-						char* buffer = new char[packetizedLen];
-
-						bytesRead = pFile->sgetn(buffer, packetizedLen);
 
 						if (bytesRead > 0)
 						{
@@ -88,12 +87,6 @@ namespace WeatherImage {
 							sequence++;
 							this->packetizedImage.push_back(entry);
 						}
-
-						if (buffer != nullptr)
-						{
-
-						}
-
 					}
 
 					for (int i = 0; i < this->packetizedImage.size(); i++)
@@ -106,8 +99,6 @@ namespace WeatherImage {
 			{
 				retVal = -1;
 			}
-
-
 
 			return retVal;
 		}
