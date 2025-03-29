@@ -3,13 +3,16 @@
 #include <string>
 #include <iostream>
 #include "logger.h"
+#include "packet.h"
 
 #define LOGMSG_LIMIT 20
 #define LOG_ENTRY_MAX_LEN 512
 #define ERROR_NULL_PTR -99
+#define MENU_FILEWRITEEXCEPTION -101
+#define MENU_SCREENOUTPUTEXCEPTION -102
+
 class Log
 {
-
 #ifdef TESTING
 public:
 #else
@@ -22,25 +25,34 @@ public:
 
 	Log(const char* path) : fileLogger(path) {};
 
-	const Log& operator<<(PacketDef& packet)
+	const Log& operator<<(PacketData::PacketDef& packet)
 	{
+		char format[3] = "%x";
 		void* setRet = nullptr;
 		int converted = 0;
 		char packetBuff[LOG_ENTRY_MAX_LEN];
 		char hexBuff[LOG_ENTRY_MAX_LEN];
 
-		setRet = memset(packetBuff, 0, LOG_ENTRY_MAX_LEN);
+		setRet = memset(&packetBuff[0], 0, LOG_ENTRY_MAX_LEN);
 		if (setRet == nullptr)
+		{
 			throw ERROR_NULL_PTR;
+		}
+			
 
-		setRet = memset(hexBuff, 0, LOG_ENTRY_MAX_LEN);
+		setRet = memset(&hexBuff[0], 0, LOG_ENTRY_MAX_LEN);
 		if (setRet == nullptr)
+		{
 			throw ERROR_NULL_PTR;
+		}
 
-		packet.Serialize(packetBuff);
-		converted = sprintf(hexBuff, "%x", packetBuff);
+		packet.Serialize(&packetBuff[0]);
+		converted = sprintf_s(&hexBuff[0], LOG_ENTRY_MAX_LEN, &format[0], &packetBuff[0], LOG_ENTRY_MAX_LEN);
 		
-		writeToFile(hexBuff, converted);
+		if (!writeToFile(&hexBuff[0], converted))
+		{
+			throw MENU_FILEWRITEEXCEPTION;
+		}
 		return *this;
 	}
 
@@ -49,7 +61,7 @@ public:
 		if (log.size() > LOGMSG_LIMIT)
 		{
 			//erase all but the last 10 entries
-			log.erase(log.begin(), log.end() - LOGMSG_LIMIT);
+			auto iterator = log.erase(log.begin(), log.end() - LOGMSG_LIMIT);
 		}
 		
 		std::string message = logMessage;
@@ -58,31 +70,36 @@ public:
 
 		return *this;
 	}
-	const Log& operator<<(int& number)
+	const Log& operator<<(const int& number)
 	{
 		if (log.size() > LOGMSG_LIMIT)
 		{
 			//erase all but the last 10 entries
-			log.erase(log.begin(), log.end() - LOGMSG_LIMIT);
+			auto iterator = log.erase(log.begin(), log.end() - LOGMSG_LIMIT);
 		}
 
 		std::string message = " ";
 		message += std::to_string(number);
-		log.at(log.size() - 1).append(message);
+
+		std::basic_string<char, std::char_traits<char>, std::allocator<char>> appendRet = log.at(log.size() - 1).append(message);
 
 		return *this;
 	}
 	
-	bool writeToFile(char* logMessage, int length)
+	bool writeToFile(const char* logMessage, int length)
 	{
+		bool ret = false;
 
 		if (fileLogger.isOpen())
 		{
-			fileLogger.write(logMessage, length);
-			return true;
+			if (fileLogger.write(logMessage, length) <= 0)
+			{
+				throw MENU_FILEWRITEEXCEPTION;
+			}
+			ret =  true;
 		}
 
-		return false;
+		return ret;
 	}
 
 	void print()
@@ -96,7 +113,6 @@ public:
 
 class Menu
 {
-
 #ifdef TESTING
 public:
 #else
@@ -112,7 +128,7 @@ public:
 
 	}
 
-	const Menu& operator<<(PacketDef& packet)
+	const Menu& operator<<(const PacketData::PacketDef& packet)
 	{
 		messages << packet;
 		return *this;
@@ -124,7 +140,7 @@ public:
 		return *this;
 	}
 
-	bool writeToFileLog(char* msg, int length)
+	bool writeToFileLog(const char* msg, int length)
 	{
 		return messages.writeToFile(msg, length);
 	}
@@ -137,7 +153,12 @@ public:
 	void printLog()
 	{
 		//clear the console
-		std::system("cls");
+		char clsCmd[4] = "cls";
+		int ret = std::system(clsCmd);
+		if (ret <= 0)
+		{
+			messages << "Failed to print the log";
+		}
 		//print the log
 		messages.print();
 	}

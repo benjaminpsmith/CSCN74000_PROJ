@@ -20,16 +20,33 @@ namespace Microsoft::VisualStudio::CppUnitTestFramework
     template<>
     std::wstring ToString<PacketData::PacketDef::Flag>(const PacketData::PacketDef::Flag& flag)
     {
+        std::wstring ret;
         switch (flag)
         {
-        case PacketData::PacketDef::Flag::EMPTY: return L"EMPTY";
-        case PacketData::PacketDef::Flag::BB: return L"BB";
-        case PacketData::PacketDef::Flag::IMG: return L"IMG";
-        case PacketData::PacketDef::Flag::AUTH: return L"AUTH";
-        case PacketData::PacketDef::Flag::ACK: return L"ACK";
-        case PacketData::PacketDef::Flag::AUTH_ACK: return L"AUTH_ACK";
-        default: return L"UNKNOWN_FLAG";
+        case PacketData::PacketDef::Flag::EMPTY: 
+            ret = L"EMPTY";
+            break;
+        case PacketData::PacketDef::Flag::BB: 
+            ret = L"BB";
+            break;
+        case PacketData::PacketDef::Flag::IMG:
+            ret = L"IMG";
+            break;
+        case PacketData::PacketDef::Flag::AUTH: 
+            ret = L"AUTH";
+            break;
+        case PacketData::PacketDef::Flag::ACK: 
+            ret = L"ACK";
+            break;
+        case PacketData::PacketDef::Flag::AUTH_ACK: 
+            ret = L"AUTH_ACK";
+            break;
+        default: 
+            ret = L"UNKNOWN_FLAG";
+            break;
         }
+
+        return ret;
     }
 }
 

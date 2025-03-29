@@ -74,7 +74,7 @@ namespace PacketData {
 
             PACKET.TAIL.crc = 0;
         }
-        PacketDef(const char* rawData, int length)
+        PacketDef(const char rawData[], int length)
             : PACKET{ 0, 0, Flag::EMPTY, 0, 0, 0, nullptr, 0 } {
 
             int status = SUCC;
@@ -201,7 +201,7 @@ namespace PacketData {
         /// </summary>
         /// <param name="outBuffer"></param>
         /// <returns>The size of the packet, or -1 if an error occured.</returns>
-        int Serialize(char* outBuffer) {
+        int Serialize(char outBuffer[]) {
 
             int packetSize = SUCC;
 

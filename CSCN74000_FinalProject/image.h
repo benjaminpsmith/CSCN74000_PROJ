@@ -9,14 +9,12 @@
 #define DEFAULT_IMAGE_PATH "image.png"
 #define MAX_IMAGE_CHUNK_SIZE 255 //10mb
 
-using namespace PacketData;
-
 
 namespace WeatherImage {
 
 	class Image
 	{
-		std::vector<PacketDef*> packetizedImage;
+		std::vector<PacketData::PacketDef*> packetizedImage;
 		std::ifstream imageInFileStream;
 		std::ofstream imageOutFileStream;
 		int imgSize;
@@ -43,6 +41,9 @@ namespace WeatherImage {
 			bytesRead = 0;
 			const int length = PacketData::Constants::MAX_BODY_LENGTH;
 			char buffer[length];
+			std::streampos pos;
+
+			pos = 0;
 
 			if (this->packetizedImage.size())
 			{
@@ -58,32 +59,35 @@ namespace WeatherImage {
 					pFile = this->imageInFileStream.rdbuf();
 
 					imageSize = pFile->pubseekoff(0, this->imageInFileStream.end, this->imageInFileStream.in);
-					pFile->pubseekpos(0, this->imageInFileStream.in);
+					pos = pFile->pubseekpos(0, this->imageInFileStream.in);
 
 					this->imgSize = imageSize;
 
-					for (int i = 0; i < imageSize; i += packetizedLen)
+					for (int i = pos; i < imageSize; i += packetizedLen)
 					{
 						if ((imageSize - i) < PacketData::Constants::MAX_BODY_LENGTH)
 						{
 							packetizedLen = (imageSize - i);
-							bytesRead = pFile->sgetn(buffer, packetizedLen);
+							bytesRead = pFile->sgetn(&buffer[0], packetizedLen);
 						}
 						else
 						{
 							packetizedLen = PacketData::Constants::MAX_BODY_LENGTH;
-							bytesRead = pFile->sgetn(buffer, packetizedLen);
+							bytesRead = pFile->sgetn(&buffer[0], packetizedLen);
 						}
 
 						if (bytesRead > 0)
 						{
-							PacketDef* entry = new PacketDef();
+							PacketData::PacketDef* entry = new PacketData::PacketDef();
 
 							entry->setSeqNum(sequence);
-							entry->setFlag(PacketDef::Flag::IMG);
-							entry->setData(buffer, bytesRead);
-							entry->setCrc(0);
-
+							entry->setFlag(PacketData::PacketDef::Flag::IMG);
+							if (entry->setData(&buffer[0], bytesRead) > 0)
+							{
+								//if the CRC doesnt get set the packet will get dropped
+								entry->setCrc(0);
+							}
+							
 							sequence++;
 							this->packetizedImage.push_back(entry);
 						}
@@ -103,7 +107,7 @@ namespace WeatherImage {
 			return retVal;
 		}
 
-		const std::vector<PacketDef*>* getPacketList()
+		const std::vector<PacketData::PacketDef*>* getPacketList()
 		{
 			return &this->packetizedImage;
 		}
@@ -113,9 +117,9 @@ namespace WeatherImage {
 			return this->packetizedImage.size();
 		}
 
-		void addSome(PacketDef& packet)
+		void addSome(PacketData::PacketDef& packet)
 		{
-			PacketDef* anotherPacket = new PacketDef();
+			PacketData::PacketDef* anotherPacket = new PacketData::PacketDef();
 			*anotherPacket = packet;
 			this->packetizedImage.push_back(anotherPacket);
 		}
@@ -123,7 +127,7 @@ namespace WeatherImage {
 		bool saveImage(const char* pathToImage = DEFAULT_IMAGE_PATH)
 		{
 			char* data = nullptr;
-
+			bool ret = false;
 
 			this->imageOutFileStream.open(pathToImage, std::fstream::out | std::ios_base::binary);
 
@@ -133,13 +137,16 @@ namespace WeatherImage {
 				{
 					data = packetizedImage.at(i)->getData();
 
-					this->imageOutFileStream.write(data, packetizedImage.at(i)->getBodyLen());
+					if (this->imageOutFileStream.write(data, packetizedImage.at(i)->getBodyLen()))
+					{
+						ret = true;
+					}
 				}
 
 				this->imageOutFileStream.close();
 			}
 
-			return false;
+			return ret;
 		}
 
 		~Image()

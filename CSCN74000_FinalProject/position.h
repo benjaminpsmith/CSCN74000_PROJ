@@ -5,6 +5,8 @@
 #include <cstring>
 #include <stdexcept>
 
+
+
 namespace PositionData {
 
     class Position {
@@ -26,7 +28,7 @@ namespace PositionData {
         Position(double lat, double lon, double hdg, double vel, double alt)
             : latitude(lat), longitude(lon), heading(hdg), velocity(vel), altitude(alt) {
         }
-        Position(const char* rawData) {
+        Position(const char rawData[]) {
             if (rawData == nullptr) {
                 throw std::invalid_argument(error_msg);
             }
@@ -102,7 +104,7 @@ namespace PositionData {
         }
 
         // Create a string that we can used to build a packet body and send.
-        int Serialize(char* outBuff) {
+        int Serialize(char outBuff[]) {
 
             int retValue = ERR;
 
