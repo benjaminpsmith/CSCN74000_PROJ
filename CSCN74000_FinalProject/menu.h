@@ -157,7 +157,7 @@ public:
 		//clear the console
 		char clsCmd[4] = "cls";
 		int ret = std::system(clsCmd);
-		if (ret <= 0)
+		if (ret != 0)
 		{
 			messages << "Failed to print the log";
 		}
