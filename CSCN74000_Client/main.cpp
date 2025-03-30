@@ -42,11 +42,11 @@ int main(void) {
 	if (memset(&connectionDetails.addr, 0, sizeof(connectionDetails.addr)) != &connectionDetails.addr)
 	{
 
-        log << "Error initializing connection details.\n";
+        log << "Error initializing connection details.";
 	}
 	if (memset(&rxSender, 0, sizeof(rxSender)) != &rxSender)
 	{
-        log << "Error initializing rxSender.\n";
+        log << "Error initializing rxSender.";
 	}
 
     //set the connection details and creat the socket
@@ -58,7 +58,7 @@ int main(void) {
     addrLength = sizeof(rxSender);
 
     if (beginsHandshake.setData(SECUREPASSWD, SECURE_PASSWORD_LEN) == -1) {
-        log << "Error setting data: size too large or error allocating memory.\n";
+        log << "Error setting data: size too large or error allocating memory.";
     }
     beginsHandshake.setDest(SERVERID);
     beginsHandshake.setSeqNum(0);
@@ -67,7 +67,7 @@ int main(void) {
 
     while (!shutdown)
     { 
-        if (std::system(clsCmd) <= 0)
+        if (std::system(clsCmd) != 0)
         {
             log << "Failed to clear the screen";
         }
@@ -75,14 +75,15 @@ int main(void) {
 
         while (flightConnection.getAuthenticationState() != ConnectionData::ConnState::AUTHENTICATED)
         {
+            log.printLog();
 
             if (flightConnection.getAuthenticationState() == ConnectionData::ConnState::UNAUTHENTICATED)
             {
                 //start the connection handshake
                 int retValue = flightConnection.establishConnection(beginsHandshake, &connectionDetails.addr);
-                if (retValue != 1)
+                if (retValue <= 0)
                 {
-                    log << "Error establishing connection.\n";
+                    log << "Error establishing connection.";
                 }
             }
             else
@@ -106,7 +107,7 @@ int main(void) {
                     int connectionSuccess = flightConnection.establishConnection(received, &rxSender);
                     if (connectionSuccess != 1)
                     {
-						log << "Error establishing connection.\n";
+						log << "Error establishing connection.";
                     }
                 }
                 
@@ -120,14 +121,16 @@ int main(void) {
 
         // Client has now successfully been authenticated.
         // The client will now alternate between sending black box data to the server and requests for images.
-		log << " Client has been authenticated.\n";
-        log << " Client will now alternate between sending black box data to the server and requests for images.\n";
+		log << "Client has been authenticated.\n";
+        log << "Client will now alternate between sending black box data to the server and requests for images.\n";
 
         innerContinue = true;
 
 		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED && !shutdown && innerContinue)   // Loop
 		{
             bool send_blackbox_data = false;
+
+            log.printLog();
 
 			if (send_blackbox_data) { // Send black box data
 
@@ -144,12 +147,12 @@ int main(void) {
                 // Construct the packet to send
                 PacketData::PacketDef blackbox_data(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::BB, 1, 1);
                 if (blackbox_data.setData(&posBuff[0], positionLength) == -1) {
-					log << "Error setting data: size too large or error allocating memory.\n";
+					log << "Error setting data: size too large or error allocating memory.";
                 }
                 blackbox_data.setCrc(0);
                 if (blackbox_data.getData() == nullptr)
                 {
-                    log << "Error setting data: size too large or error allocating memory.\n";
+                    log << "Error setting data: size too large or error allocating memory.";
                 }
 
                 // Serialize the packet
@@ -158,7 +161,7 @@ int main(void) {
 
                     // Send the packet
 					int sendToRetVale = sendto(connectionDetails.socket, &buffer[0], totalSize, 0, reinterpret_cast<struct sockaddr*>(&rxSender), sizeof(rxSender));
-					log << "Sent black box data.\n";
+					log << "Sent black box data.";
                     if (!log.writeToFileLog(&sendingMsg[0], SEND_MSG_MAX_LEN))
                     {
                         log << "Logger failed to write to file";
@@ -184,12 +187,12 @@ int main(void) {
 					// Check for ACK
 					if (received.getFlag() != PacketData::PacketDef::Flag::ACK)
 					{
-						log << "Error: No ACK received.\n";
+						log << "Error: No ACK received.";
                         
 					}
                     if (received.getFlag() == PacketData::PacketDef::Flag::SHUTDOWN)
                     {
-                        log << "Received shutdown message.\n";
+                        log << "Received shutdown message.";
                         shutdown = true;
                         innerContinue = false;
                     }
@@ -215,11 +218,11 @@ int main(void) {
                     int flag = 0;
                     int packetsToReceive = 0;
                     unsigned int totalSize = imgRequest.Serialize(&buffer[0]);
-                    log << "Preparing to send...\n";
+                    log << "Preparing to send";
 
                     //Request
                     int sendToRetVal = sendto(connectionDetails.socket, &buffer[0], totalSize, 0, reinterpret_cast<struct sockaddr*>(&rxSender), sizeof(rxSender));
-                    log << "Sent image request.\n";
+                    log << "Sent image request";
                     if (!log.writeToFileLog(&sendingMsg[0], RECV_MSG_MAX_LEN))
                     {
                         log << "Logger failed to write to file";
@@ -239,7 +242,6 @@ int main(void) {
                     {
                         log << "Logger failed to write to file";
                     }
-                    
 
                     if (received.getFlag() == PacketData::PacketDef::AUTH_LOST)
                     {
@@ -262,8 +264,13 @@ int main(void) {
 
                         imageLoopContinue = true;
 
+                        log << "Receiving image packets";
+
+                        log.printLog();
+
                         while (received.getSeqNum() != packetsToReceive && imageLoopContinue == true)
                         {
+
                             bytesRead = recvfrom(connectionDetails.socket, &recvBuffer[0], PacketData::Constants::MAX_PACKET_LENGTH, 0, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
                             if(!log.writeToFileLog(&receivingMsg[0], RECV_MSG_MAX_LEN))
                             {
@@ -295,12 +302,12 @@ int main(void) {
                             }
                         }
 
-                        log << (std::string("Received") + std::to_string(packetsToReceive) + std::string(" Image packets\n")).c_str();
+                        log << (std::string("Received ") + std::to_string(packetsToReceive) + std::string(" Image packets\n")).c_str();
 
                         //write image to file - 
                         if (imgReceived.saveImage())
                         {
-                            std::cout << "Successfully saved the transmitted image" << std::endl;
+                            log << "Successfully saved the transmitted image";
                         }
                     }
                 }
@@ -312,6 +319,6 @@ int main(void) {
 			Sleep(1000);	// Sleep for 1 second
 		}
     }
-
+    log << "Shutting down";
     return 1;
 }

@@ -28,8 +28,8 @@ namespace Server {
         RECEIVING
     }ServerState;
 
-    int serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, bool& shutdown, Menu& menu);
-    int menuThread(Menu& menu, const bool& shutdown);
+    int serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, std::atomic<bool>& shutdown, Menu& menu);
+    int menuThread(Menu& menu, std::atomic<bool>& shutdown);
 
 }
 
@@ -37,8 +37,8 @@ int main(void){
 
     PacketData::PacketDef received;
     bool firstHandshakePacket = false;
-    bool shutdown = false;
-    bool closeMenu = false;
+    std::atomic<bool> shutdown = false;
+    std::atomic<bool> closeMenu = false;
     Menu mainMenu;
 
 
@@ -57,7 +57,7 @@ int main(void){
         char opt = 0;
         char clsCmd[4] = "cls";
         //clear the console
-        if (std::system(clsCmd))
+        if (std::system(clsCmd) != 0)
         {
             mainMenu << "Failed to clear screen";
         }
@@ -80,13 +80,15 @@ int main(void){
         Sleep(500);
     }
     
-    serverThread.join();
-    closeMenu = true;
-    menuThread.join();
     
+    closeMenu = true;
+
+    menuThread.join();
+
+    serverThread.join();
 }
 
-int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, bool& shutdown, Menu& log)
+int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, std::atomic<bool>& shutdown, Menu& log)
 {
     Server::ServerState state;
     ConnDetails connectionDetails;
@@ -143,26 +145,26 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
     //awaiting, idle, processing, sending or receiving
 
     timerThread = std::thread([&] {
-            while (!shutdown)
+        while (!shutdown)
+        {
+            Sleep(60000);
+            if (watchDogKick == false)
             {
-                Sleep(60000);
-                if (watchDogKick == false)
-                {
-                    watchdogError = true;
-                }
-                else
-                {
-                    watchDogKick = false;
-                }
+                watchdogError = true;
             }
-        });
+            else
+            {
+                watchDogKick = false;
+            }
+        }
+    });
 
 
     while (!shutdown && !watchdogError)
     {
         incomingFlag = PacketDef::Flag::EMPTY;
 
-        while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED && !watchdogError)
+        while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED && !watchdogError && !shutdown)
         {
             state = Server::SERVER_STATE::AWAITING_AUTH;
             log << "Server awaiting authentication...";
@@ -437,7 +439,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
     return 1;
 }
 
-int Server::menuThread(Menu& menu, const bool& shutdown)
+int Server::menuThread(Menu& menu, std::atomic<bool>& shutdown)
 {
     while (!shutdown)
     {

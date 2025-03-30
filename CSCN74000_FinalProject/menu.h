@@ -1,4 +1,6 @@
-#pragma once
+#ifndef HPP_MENU
+#define HPP_MENU
+
 #include <vector>
 #include <string>
 #include <iostream>
@@ -10,6 +12,7 @@
 #define ERROR_NULL_PTR -99
 #define MENU_FILEWRITEEXCEPTION -101
 #define MENU_SCREENOUTPUTEXCEPTION -102
+#define LOG_MAX_BUFFER_LENGTH 512
 
 class Log
 {
@@ -91,10 +94,15 @@ public:
 	bool writeToFile(const char* logMessage, int length)
 	{
 		bool ret = false;
+		char hexBuff[LOG_MAX_BUFFER_LENGTH];
+		int converted = 0;
+		char format[3] = "%x";
 
 		if (fileLogger.isOpen())
 		{
-			if (fileLogger.write(logMessage, length) <= 0)
+			converted = sprintf_s(&hexBuff[0], LOG_MAX_BUFFER_LENGTH, &format[0], &logMessage[0], length);
+
+			if (fileLogger.write(hexBuff, converted) <= 0)
 			{
 				throw MENU_FILEWRITEEXCEPTION;
 			}
@@ -173,3 +181,6 @@ public:
 		std::cout << "1. Shutdown" << std::endl;
 	}
 };
+
+
+#endif HPP_MENU
