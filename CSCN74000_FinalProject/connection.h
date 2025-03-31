@@ -43,17 +43,22 @@ namespace ConnectionData {
 	};
 
 	class Connection {
+
+#ifdef TESTING
+	public:
+#else
 	private:
+#endif
 		WSADATA wsaData;
 		ConnState state;
 		const char* passphrase;
-		ConnDetails connectionDetails;
+		ConnectionData::ConnDetails connectionDetails;
 
 	public:
 		Connection();
 
 		fd createSocket();
-		int bindTo(fd* socketFd, address* targetAddress);
+		int bindTo(const fd* socketFd, address* targetAddress);
 		int accept(PacketData::PacketDef& handshakePacket, address* targetAddress);
 		address createAddress(port portNum, iPAddress ip = nullptr);
 		int establishConnection(PacketData::PacketDef& handshakePacket, address* targetAddress);

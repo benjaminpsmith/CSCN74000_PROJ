@@ -70,34 +70,32 @@ namespace ConnectionData {
 		ackBit = flags & PacketData::PacketDef::Flag::ACK;
 		restartAuth = flags & PacketData::PacketDef::Flag::AUTH_LOST;
 
-		if (state == ConnState::UNAUTHENTICATED && !authBit)
+		if (state == ConnState::UNAUTHENTICATED && authBit != PacketData::PacketDef::Flag::AUTH)
 		{
 			handshakePacket.setFlag(PacketData::PacketDef::Flag::AUTH);
-			ret = handshakePacket.Serialize(buffer);
+			ret = handshakePacket.Serialize(&buffer[0]);
 
 			if (ret)
 			{
-				ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
+				ret = sendto(connectionDetails.socket, &buffer[0], ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 				int err = WSAGetLastError();
 			}
 			state = ConnState::HANDSHAKING;
-			return 1;
 		}
 
-		if (state == ConnState::HANDSHAKING && authBit && ackBit)
+		if (state == ConnState::HANDSHAKING && authBit == PacketData::PacketDef::Flag::AUTH && ackBit == PacketData::PacketDef::Flag::ACK)
 		{
 			handshakePacket.setFlag(PacketData::PacketDef::Flag::ACK);
-			ret = handshakePacket.Serialize(buffer);
+			ret = handshakePacket.Serialize(&buffer[0]);
 
 			if (ret)
 			{
-				ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
+				ret = sendto(connectionDetails.socket, &buffer[0], ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 			}
 
-			return 1;
 		}
 
-		if (state == ConnState::HANDSHAKING && ackBit)
+		if (state == ConnState::HANDSHAKING && ackBit == PacketData::PacketDef::Flag::ACK && authBit != PacketData::PacketDef::Flag::AUTH)
 		{
 			state = ConnState::AUTHENTICATED;
 			ret = 1;
@@ -108,7 +106,7 @@ namespace ConnectionData {
 			state = ConnState::UNAUTHENTICATED;
 		}
 
-		return 1;
+		return ret;
 	}
 
 	void Connection::setConnectionDetails(const fd* socketFd, const address* targetAddress)
@@ -137,7 +135,7 @@ namespace ConnectionData {
 		this->state = ConnState::UNAUTHENTICATED;
 	}
 
-	int Connection::bindTo(fd* socketFd, address* targetAddress)
+	int Connection::bindTo(const fd* socketFd, address* targetAddress)
 	{
 		int retValue = 1;
 
@@ -153,15 +151,17 @@ namespace ConnectionData {
 
 	int Connection::accept(PacketData::PacketDef& handshakePacket, address* targetAddress)
 	{
-		int ret;
+		bool ret;
 		uint8_t flags;
 		int authBit;
 		int ackBit;
 		char* authData;
 		uint32_t airplaneID;
+		int bytes;
 
 		char buffer[PacketData::Constants::MAX_PACKET_LENGTH];
 
+		bytes = 0;
 		airplaneID = 0;
 		authData = nullptr;
 		ret = 0;
@@ -172,7 +172,7 @@ namespace ConnectionData {
 		authBit = flags & 0x4;
 		ackBit = flags & 0x8;
 
-		if (state == ConnState::UNAUTHENTICATED && authBit)
+		if (state == ConnState::UNAUTHENTICATED && authBit == PacketData::PacketDef::Flag::AUTH)
 		{
 			//extract the password and compare it to the correct one
 
@@ -180,21 +180,22 @@ namespace ConnectionData {
 
 			if (authData != nullptr)
 			{
-				ret = strncmp(authData, this->passphrase, handshakePacket.getBodyLen());
+				bytes = strncmp(authData, this->passphrase, handshakePacket.getBodyLen());
 			}
 
-			if (!ret)
+			if (bytes == 0)
 			{
 				//send AUTH + ACK
 				handshakePacket.setFlag(PacketData::PacketDef::Flag::AUTH_ACK);
-				ret = handshakePacket.Serialize(buffer);
+				bytes = handshakePacket.Serialize(&buffer[0]);
 
-				if (ret)
+				if (bytes > 0)
 				{
-					ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
+					bytes = sendto(connectionDetails.socket, &buffer[0], bytes, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 				}
 				airplaneID = handshakePacket.getSrc();
-				if (memcpy(this->connectionDetails.airplaneID, &airplaneID, 3) != this->connectionDetails.airplaneID)
+
+				if (memcpy(static_cast<void*>(&this->connectionDetails.airplaneID), static_cast<void*>(&airplaneID), 3) == nullptr)
 				{
 					std::cerr << "Error copying airplane ID." << std::endl;
 				}
@@ -202,25 +203,21 @@ namespace ConnectionData {
 				state = ConnState::HANDSHAKING;
 			}
 
-			return 1;
-
 		}
 
-		if (state == ConnState::HANDSHAKING && ackBit && !authBit)
+		if (state == ConnState::HANDSHAKING && ackBit == PacketData::PacketDef::Flag::ACK  && authBit !=  PacketData::PacketDef::Flag::AUTH)
 		{
 
 			//send ACK
 			handshakePacket.setFlag(PacketData::PacketDef::Flag::ACK);
-			ret = handshakePacket.Serialize(buffer);
+			bytes = handshakePacket.Serialize(&buffer[0]);
 
-			if (ret)
+			if (bytes > 0)
 			{
-				ret = sendto(connectionDetails.socket, buffer, ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
+				bytes = sendto(connectionDetails.socket, &buffer[0], bytes, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 			}
 
 			state = ConnState::AUTHENTICATED;
-
-			return 1;
 		}
 
 		return 1;

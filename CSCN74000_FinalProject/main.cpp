@@ -5,12 +5,12 @@
 #include <thread>
 #include "menu.h"
 #include <atomic>
-using namespace ConnectionData;
 
-
+#define POSITION_PRINT_FORMAT "%.3f, %.3f, %.3f, %.3f, %.3f"
+#define FOMRAT_LENGTH 29
 #define BLACKBOX_FILE "_blackbox.csv"
-
-
+#define RECV_MSG_MAX_LEN 12
+#define SEND_MSG_MAX_LEN 10
 
 namespace Server {
 
@@ -28,8 +28,8 @@ namespace Server {
         RECEIVING
     }ServerState;
 
-    int serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort, bool& shutdown, Menu& menu);
-    int menuThread(Menu& menu, bool& shutdown);
+    int serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, std::atomic<bool>& shutdown, Menu& menu);
+    int menuThread(Menu& menu, std::atomic<bool>& shutdown);
 
 }
 
@@ -37,8 +37,8 @@ int main(void){
 
     PacketData::PacketDef received;
     bool firstHandshakePacket = false;
-    bool shutdown = false;
-    bool closeMenu = false;
+    std::atomic<bool> shutdown = false;
+    std::atomic<bool> closeMenu = false;
     Menu mainMenu;
 
 
@@ -48,14 +48,19 @@ int main(void){
         });
 
     std::thread serverThread([&] {
-        int result = Server::serverThread(received, firstHandshakePacket, SERVER_PORT, shutdown, mainMenu);
+        const uint16_t PORT = SERVER_PORT;
+        int result = Server::serverThread(received, firstHandshakePacket, PORT, shutdown, mainMenu);
         });
 
     while (!shutdown)
     {
         char opt = 0;
+        char clsCmd[4] = "cls";
         //clear the console
-        std::system("cls");
+        if (std::system(clsCmd) != 0)
+        {
+            mainMenu << "Failed to clear screen";
+        }
         mainMenu.printMenu();
 
         opt = getchar();
@@ -68,19 +73,22 @@ int main(void){
             break;
         }
         default:
+            //default
             break;
         }
 
         Sleep(500);
     }
     
-    serverThread.join();
-    closeMenu = true;
-    menuThread.join();
     
+    closeMenu = true;
+
+    menuThread.join();
+
+    serverThread.join();
 }
 
-int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int serverPort, bool& shutdown, Menu& log)
+int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, std::atomic<bool>& shutdown, Menu& log)
 {
     Server::ServerState state;
     ConnDetails connectionDetails;
@@ -91,12 +99,14 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     PacketData::PacketDef reauthResponse(AIRPLANE_ID, SERVER_ID, PacketData::PacketDef::Flag::AUTH_LOST, 1, 1);
     char sendBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
     char recvBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
-    char sendingMsg[10] = "Sending: ";
-    char receivingMsg[12] = "Receiving: ";
+    char sendingMsg[SEND_MSG_MAX_LEN] = "Sending: ";
+    char receivingMsg[RECV_MSG_MAX_LEN] = "Receiving: ";
     char messageBuff[256] = { 0 };
-
+    const char* IPADDRESS = SERVER_IP;
+    const char* SECUREPASSWD = SECURE_PASSWORD;
     int attempts = 0;
     int packetCount = 0;
+    char posFormat[FOMRAT_LENGTH] = POSITION_PRINT_FORMAT;
 
     address rxSender;
     int addrLength;
@@ -108,7 +118,9 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     int bindToRetVal;
     PacketDef::Flag incomingFlag;
     bool watchdogError;
+    int bytesPrinted;
 
+    bytesPrinted = 0;
     watchdogError = false;
     watchDogKick = true;
     bindToRetVal = 0;
@@ -121,9 +133,9 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
     //set the connection details and creat the socket
     connectionDetails.socket = flightConnection.createSocket(); 
-    connectionDetails.addr = flightConnection.createAddress(serverPort, SERVER_IP);
+    connectionDetails.addr = flightConnection.createAddress(serverPort, IPADDRESS);
     flightConnection.setConnectionDetails(&connectionDetails.socket, &connectionDetails.addr);
-    flightConnection.setPassphrase(SECURE_PASSWORD);
+    flightConnection.setPassphrase(SECUREPASSWD);
 
     bindToRetVal = flightConnection.bindTo(&connectionDetails.socket, &connectionDetails.addr);
 
@@ -133,26 +145,26 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     //awaiting, idle, processing, sending or receiving
 
     timerThread = std::thread([&] {
-            while (!shutdown)
+        while (!shutdown)
+        {
+            Sleep(60000);
+            if (watchDogKick == false)
             {
-                Sleep(60000);
-                if (watchDogKick == false)
-                {
-                    watchdogError = true;
-                }
-                else
-                {
-                    watchDogKick = false;
-                }
+                watchdogError = true;
             }
-        });
+            else
+            {
+                watchDogKick = false;
+            }
+        }
+    });
 
 
     while (!shutdown && !watchdogError)
     {
         incomingFlag = PacketDef::Flag::EMPTY;
 
-        while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED && !watchdogError)
+        while (flightConnection.getAuthenticationState() != ConnState::AUTHENTICATED && !watchdogError && !shutdown)
         {
             state = Server::SERVER_STATE::AWAITING_AUTH;
             log << "Server awaiting authentication...";
@@ -161,13 +173,21 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             //The packet is passed to the new thread, and that new thread will use that packet as the starting point for the handshake
             if (!firstHandshakePacket)
             {
-                bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
-                log.writeToFileLog(receivingMsg, strlen(receivingMsg));
+                bytesRead = recvfrom(connectionDetails.socket, &recvBuffer[0], PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
+
+                if (!log.writeToFileLog(&receivingMsg[0], RECV_MSG_MAX_LEN))
+                {
+                    log << "Logger failed to write to file";
+                }
+                if (!log.writeToFileLog(&recvBuffer[0], bytesRead))
+                {
+                    log << "Logger failed to write to file";
+                }
                 
                 if (bytesRead > 0)
                 {
                     err = WSAGetLastError();
-                    received = PacketDef(recvBuffer, bytesRead);
+                    received = PacketDef(&recvBuffer[0], bytesRead);
                     log << received;
                 }
             }
@@ -202,17 +222,30 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
         }
 
         log << "Server is now idle and waiting to receive packets...";
-        bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
-        log.writeToFileLog(receivingMsg, strlen(receivingMsg));
+        bytesRead = recvfrom(connectionDetails.socket, &recvBuffer[0], PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
+        if (!log.writeToFileLog(&receivingMsg[0], RECV_MSG_MAX_LEN))
+        {
+            log << "Logger failed to write to file";
+        }
+        if (!log.writeToFileLog(&recvBuffer[0], bytesRead))
+        {
+            log << "Logger failed to write to file";
+        }
 
         if (bytesRead < 0) {
             
                 log << "Error in recvfrom() or timed out";
                 flightConnection.restartAuth();
-                int bytesToSend = reauthResponse.Serialize(sendBuffer);  // SEND REAUTH
-                int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-                log.writeToFileLog(sendingMsg, strlen(sendingMsg));
-                log << reauthResponse;
+                int bytesToSend = reauthResponse.Serialize(&sendBuffer[0]);  // SEND REAUTH
+                int sendResult = sendto(connectionDetails.socket, &sendBuffer[0], bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+                if (!log.writeToFileLog(&sendingMsg[0], SEND_MSG_MAX_LEN))
+                {
+                    log << "Logger failed to write to file";
+                }
+                if (!log.writeToFileLog(&sendBuffer[0], bytesToSend))
+                {
+                    log << "Logger failed to write to file";
+                }
                 incomingFlag = PacketDef::Flag::EMPTY;
         }
         else {
@@ -222,8 +255,17 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
             // We are now receiving the black-box data from the client
             state = Server::SERVER_STATE::RECEIVING;
             log << "Server is now receiving";
-            received = PacketDef(recvBuffer, bytesRead);    //RECV BB DATA
-            log << received;
+            received = PacketDef(&recvBuffer[0], bytesRead);    //RECV BB DATA
+
+            if (!log.writeToFileLog(&receivingMsg[0], RECV_MSG_MAX_LEN))
+            {
+                log << "Logger failed to write to file";
+            }
+            if (!log.writeToFileLog(&recvBuffer[0], bytesRead))
+            {
+                log << "Logger failed to write to file";
+            }
+
             incomingFlag = received.getFlag();
         }
 
@@ -234,12 +276,12 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                 {
                     const char* data = received.getData();
                     PositionData::Position pos(data);
-                    sprintf(messageBuff, "%.3f, %.3f, %.3f, %.3f, %.3f", pos.latitude, pos.longitude, pos.heading, pos.velocity, pos.altitude);
+                    bytesPrinted = sprintf(&messageBuff[0], &posFormat[0], pos.latitude, pos.longitude, pos.heading, pos.velocity, pos.altitude);
                     log << messageBuff;
                     // Create a position object from the string     
                     std::string filename = std::to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
-                    bool retValue = pos.writeToFile(filename);	                                            // Write the black-box data to a file named "clientID_blackbox.csv"
-                    if (retValue) {
+                                            // Write the black-box data to a file named "clientID_blackbox.csv"
+                    if (pos.writeToFile(filename)) {
                         log << "Black-box data received and written to file.";
                     }
                     else {
@@ -258,10 +300,16 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     }
                     toSend.setCrc(0);
 
-                    int bytesToSend = toSend.Serialize(sendBuffer);  // SEND ACK
-                    int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-                    log.writeToFileLog(sendingMsg, strlen(receivingMsg));
-                    log << toSend;
+                    int bytesToSend = toSend.Serialize(&sendBuffer[0]);  // SEND ACK
+                    int sendResult = sendto(connectionDetails.socket, &sendBuffer[0], bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+                    if (!log.writeToFileLog(sendingMsg, SEND_MSG_MAX_LEN))
+                    {
+                        log << "Logger failed to write to file";
+                    }
+                    if (!log.writeToFileLog(&sendBuffer[0], bytesToSend))
+                    {
+                        log << "Logger failed to write to file";
+                    }
                     break;
                 }
                 case PacketDef::Flag::IMG://Image request received by server
@@ -282,8 +330,14 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
                     ackReceived.setTotalCount(weatherImage.getPacketCount());
                     int bytesToSend = ackReceived.Serialize(sendBuffer);  // SEND ACK
                     int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-                    log.writeToFileLog(sendingMsg, strlen(receivingMsg));
-                    log << ackReceived;
+                    if (!log.writeToFileLog(&sendingMsg[0], SEND_MSG_MAX_LEN))
+                    {
+                        log << "Logger failed to write to file";
+                    }
+                    if (!log.writeToFileLog(&sendBuffer[0], bytesToSend))
+                    {
+                        log << "Logger failed to write to file";
+                    }
 
                     //Image request handling is the only case where the server enters the processing state.
                     //Only images can be larger than the packet body length.
@@ -299,14 +353,26 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
 
                         int bytesToSend = imagePacket->Serialize(sendBuffer);  // Send image packet after packet, and expect ACK responses for each
                         int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-                        log.writeToFileLog(sendingMsg, strlen(receivingMsg));
-                        log << *imagePacket;
+                        if (!log.writeToFileLog(sendingMsg, SEND_MSG_MAX_LEN))
+                        {
+                            log << "Logger failed to write to file";
+                        }
+                        if (!log.writeToFileLog(&sendBuffer[0], bytesToSend))
+                        {
+                            log << "Logger failed to write to file";
+                        }
 
                         if (sendResult > 0)
                         {
                             bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
-                            log.writeToFileLog(receivingMsg, strlen(receivingMsg));
-                            
+                            if (!log.writeToFileLog(receivingMsg, RECV_MSG_MAX_LEN))
+                            {
+                                log << "Logger failed to write to file";
+                            }
+                            if (!log.writeToFileLog(&recvBuffer[0], bytesRead))
+                            {
+                                log << "Logger failed to write to file";
+                            }
 
                             if (bytesRead < 0)
                             {
@@ -355,9 +421,16 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     //send command to shutdown
     watchDogKick = false;
     shutdown = true;
-    int bytesToSend = shutdownResponse.Serialize(sendBuffer);  // SEND shutdown
-    int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-    log << shutdownResponse;
+    int bytesToSend = shutdownResponse.Serialize(&sendBuffer[0]);  // SEND shutdown
+    int sendResult = sendto(connectionDetails.socket, &sendBuffer[0], bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+    if (!log.writeToFileLog(&sendingMsg[0], SEND_MSG_MAX_LEN))
+    {
+        log << "Logger failed to write to file";
+    }
+    if (!log.writeToFileLog(&sendBuffer[0], bytesToSend))
+    {
+        log << "Logger failed to write to file";
+    }
     log << "Shutting down";
 
    
@@ -366,7 +439,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, int ser
     return 1;
 }
 
-int Server::menuThread(Menu& menu, bool& shutdown)
+int Server::menuThread(Menu& menu, std::atomic<bool>& shutdown)
 {
     while (!shutdown)
     {

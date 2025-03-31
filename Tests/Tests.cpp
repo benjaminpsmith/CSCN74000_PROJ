@@ -4,8 +4,11 @@
 #include <vector>
 #include <filesystem>
 #include "../CSCN74000_FinalProject/packet.h"
+#include "../CSCN74000_FinalProject/image.h"
+#include "../CSCN74000_FinalProject/menu.h"
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
+
 
 #define ERROR_CODE -1
 #define SUCCESS_CODE 1
@@ -17,16 +20,33 @@ namespace Microsoft::VisualStudio::CppUnitTestFramework
     template<>
     std::wstring ToString<PacketData::PacketDef::Flag>(const PacketData::PacketDef::Flag& flag)
     {
+        std::wstring ret;
         switch (flag)
         {
-        case PacketData::PacketDef::Flag::EMPTY: return L"EMPTY";
-        case PacketData::PacketDef::Flag::BB: return L"BB";
-        case PacketData::PacketDef::Flag::IMG: return L"IMG";
-        case PacketData::PacketDef::Flag::AUTH: return L"AUTH";
-        case PacketData::PacketDef::Flag::ACK: return L"ACK";
-        case PacketData::PacketDef::Flag::AUTH_ACK: return L"AUTH_ACK";
-        default: return L"UNKNOWN_FLAG";
+        case PacketData::PacketDef::Flag::EMPTY: 
+            ret = L"EMPTY";
+            break;
+        case PacketData::PacketDef::Flag::BB: 
+            ret = L"BB";
+            break;
+        case PacketData::PacketDef::Flag::IMG:
+            ret = L"IMG";
+            break;
+        case PacketData::PacketDef::Flag::AUTH: 
+            ret = L"AUTH";
+            break;
+        case PacketData::PacketDef::Flag::ACK: 
+            ret = L"ACK";
+            break;
+        case PacketData::PacketDef::Flag::AUTH_ACK: 
+            ret = L"AUTH_ACK";
+            break;
+        default: 
+            ret = L"UNKNOWN_FLAG";
+            break;
         }
+
+        return ret;
     }
 }
 
@@ -477,5 +497,162 @@ namespace PositionDataTests
                 PositionData::Position::GetSerializedSize(),
                 L"Serialized size should be 40");
         }
+    };
+
+
+}
+
+namespace LoggingTests
+{
+    TEST_CLASS(LoggerMethodTests)
+    {
+    public:
+        TEST_METHOD(GetLog_ReturnsNonNullLogPointer)
+        {
+            Menu menulog;
+            const Log* log = menulog.getLog();
+
+            Assert::IsNotNull(log, L"The Log pointer should not be null if the Menu was instantiated");
+
+        }
+
+        TEST_METHOD(InsertingLogEntry_CorrectNumberOfEntriesStored)
+        {
+            Menu menulog;
+            const Log* log = menulog.getLog();
+            char* testVal = "test entry";
+            int logSize = 0;
+            int correctNumberOfEntries = 1;
+
+            menulog << testVal;
+            logSize = log->log.size();
+
+            Assert::AreEqual(logSize, correctNumberOfEntries, L"There should only be 1 entry in the log");
+
+        }
+
+        TEST_METHOD(InstantiatingMenuInstantiatesLog_LogOpensFileLog)
+        {
+            Menu menulog;
+            Log* log = menulog.getLog();
+            bool fileIsOpen = false;
+            
+            char* testVal = "test entry";
+            
+            fileIsOpen = log->fileLogger.isOpen();
+
+            Assert::AreEqual(fileIsOpen, true, L"There should only be 1 entry in the log");
+
+        }
+
+        TEST_METHOD(MenuInsertionOfText_LogWritesToFile)
+        {
+            Menu menulog;
+            char* testVal = "test entry";
+            bool wroteToFile = false;
+
+            wroteToFile = menulog.writeToFileLog(testVal, strlen(testVal));
+
+            Assert::AreEqual(wroteToFile, true, L"Menu should open a ofstream object when instantiated. Writing should not fail");
+
+        }
+    };
+}
+
+
+
+namespace ImageTests
+{
+    TEST_CLASS(ImageMethodTests)
+    {
+    public:
+        TEST_METHOD(LoadImage_ReadsImage)
+        {
+            WeatherImage::Image img;
+            int testSuccess = 0;
+            int retVal = -99;
+
+            retVal = img.loadImage();
+
+            Assert::AreEqual(retVal, testSuccess, L"Image does not exist or it failed to load");
+        }
+
+        TEST_METHOD(GetPacketList_ReturnsVectorOfPackets)
+        {
+            WeatherImage::Image img;
+            int testSuccess = 158;
+            int success = -1;
+            const std::vector<PacketDef*>* pPacketList = nullptr;
+
+            success = img.loadImage();
+            pPacketList = img.getPacketList();
+
+            Assert::IsNotNull(pPacketList, L"Packet list was null");
+            Assert::AreEqual((int)pPacketList->size(), testSuccess, L"The image was failed to convert into a packet list");
+        }
+
+        TEST_METHOD(GetPacketCount_ReturnsCorrectNumberOfPackets)
+        {
+            WeatherImage::Image img;
+            int testSuccess = 158;
+            int testCount = 0;
+            int success = -1;
+
+            success = img.loadImage();
+            testCount = img.getPacketCount();
+
+            Assert::AreEqual(testCount, testSuccess, L"The packet count did not equal what it should for this test image");
+        }
+
+        TEST_METHOD(Addsome_AddsPacketToPacketListOfImageData)
+        {
+            WeatherImage::Image img;
+            int testSuccess = 158;
+            int testCount = 0;
+            int success = -1;
+            int byteBuffer[5] = { 1, 2, 3, 4, 5 };
+            int byteArrayLength = 5;
+            PacketDef packet;
+
+            packet.setData(static_cast<char*>((void*)byteBuffer), byteArrayLength);
+            success = img.loadImage();
+            testCount = img.getPacketCount();
+            Assert::AreEqual(testCount, testSuccess, L"The packet count did not equal what it should for this test image");
+            img.addSome(packet);
+            testCount = img.getPacketCount();
+
+            Assert::AreEqual(testCount, testSuccess + 1, L"The packet count did not equal what it should after adding a packet to the list");
+        }
+
+        TEST_METHOD(SaveImage_SavesBufferOfTestData)
+        {
+            WeatherImage::Image img;
+            PacketDef packet;
+            int testSuccess = 158;
+            int retVal = -99;
+            int testCount = 0;
+            int readSuccess = 0;
+            bool success = false;
+            char byteBuffer[5] = { 1, 2, 3, 4, 5 };
+            int byteArrayLength = 5;
+            const std::vector<PacketDef*>* pPacketList = nullptr;
+
+            packet.setData(static_cast<char*>((void*)byteBuffer), byteArrayLength);
+            img.addSome(packet);
+            success = img.saveImage();
+            retVal = img.loadImage();
+            Assert::AreEqual(retVal, readSuccess, L"The file was not read into a packet because the loadImage return value is not 0");
+            testCount = img.getPacketCount();
+            pPacketList = img.getPacketList();
+            PacketDef* testData = pPacketList->at(0);
+            char* pPacketData = testData->getData();
+
+            Assert::AreEqual(pPacketData[0], byteBuffer[0], L"Byte 1 did not match");
+            Assert::AreEqual(pPacketData[1], byteBuffer[1], L"Byte 2 did not match");
+            Assert::AreEqual(pPacketData[2], byteBuffer[2], L"Byte 3 did not match");
+            Assert::AreEqual(pPacketData[3], byteBuffer[3], L"Byte 4 did not match");
+            Assert::AreEqual(pPacketData[4], byteBuffer[4], L"Byte 5 did not match");
+        }
+
     };
 }
