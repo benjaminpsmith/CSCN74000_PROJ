@@ -559,8 +559,6 @@ namespace LoggingTests
     };
 }
 
-
-
 namespace ImageTests
 {
     TEST_CLASS(ImageMethodTests)
@@ -582,7 +580,7 @@ namespace ImageTests
             WeatherImage::Image img;
             int testSuccess = 158;
             int success = -1;
-            const std::vector<PacketDef*>* pPacketList = nullptr;
+            const std::vector<PacketData::PacketDef*>* pPacketList = nullptr;
 
             success = img.loadImage();
             pPacketList = img.getPacketList();
@@ -612,7 +610,7 @@ namespace ImageTests
             int success = -1;
             int byteBuffer[5] = { 1, 2, 3, 4, 5 };
             int byteArrayLength = 5;
-            PacketDef packet;
+            PacketData::PacketDef packet;
 
             packet.setData(static_cast<char*>((void*)byteBuffer), byteArrayLength);
             success = img.loadImage();
@@ -627,7 +625,7 @@ namespace ImageTests
         TEST_METHOD(SaveImage_SavesBufferOfTestData)
         {
             WeatherImage::Image img;
-            PacketDef packet;
+            PacketData::PacketDef packet;
             int testSuccess = 158;
             int retVal = -99;
             int testCount = 0;
@@ -635,7 +633,7 @@ namespace ImageTests
             bool success = false;
             char byteBuffer[5] = { 1, 2, 3, 4, 5 };
             int byteArrayLength = 5;
-            const std::vector<PacketDef*>* pPacketList = nullptr;
+            const std::vector<PacketData::PacketDef*>* pPacketList = nullptr;
 
             packet.setData(static_cast<char*>((void*)byteBuffer), byteArrayLength);
             img.addSome(packet);
@@ -644,7 +642,7 @@ namespace ImageTests
             Assert::AreEqual(retVal, readSuccess, L"The file was not read into a packet because the loadImage return value is not 0");
             testCount = img.getPacketCount();
             pPacketList = img.getPacketList();
-            PacketDef* testData = pPacketList->at(0);
+            PacketData::PacketDef* testData = pPacketList->at(0);
             char* pPacketData = testData->getData();
 
             Assert::AreEqual(pPacketData[0], byteBuffer[0], L"Byte 1 did not match");
