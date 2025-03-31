@@ -586,7 +586,7 @@ namespace ImageTests
             pPacketList = img.getPacketList();
 
             Assert::IsNotNull(pPacketList, L"Packet list was null");
-            Assert::AreEqual((int)pPacketList->size(), testSuccess, L"The image was failed to convert into a packet list");
+            Assert::AreEqual(testSuccess, (int)pPacketList->size(), L"The image was failed to convert into a packet list");
         }
 
         TEST_METHOD(GetPacketCount_ReturnsCorrectNumberOfPackets)
@@ -599,7 +599,7 @@ namespace ImageTests
             success = img.loadImage();
             testCount = img.getPacketCount();
 
-            Assert::AreEqual(testCount, testSuccess, L"The packet count did not equal what it should for this test image");
+            Assert::AreEqual(testSuccess, testCount, L"The packet count did not equal what it should for this test image");
         }
 
         TEST_METHOD(Addsome_AddsPacketToPacketListOfImageData)
@@ -615,11 +615,11 @@ namespace ImageTests
             packet.setData(static_cast<char*>((void*)byteBuffer), byteArrayLength);
             success = img.loadImage();
             testCount = img.getPacketCount();
-            Assert::AreEqual(testCount, testSuccess, L"The packet count did not equal what it should for this test image");
+            Assert::AreEqual(testSuccess, testCount, L"The packet count did not equal what it should for this test image");
             img.addSome(packet);
             testCount = img.getPacketCount();
 
-            Assert::AreEqual(testCount, testSuccess + 1, L"The packet count did not equal what it should after adding a packet to the list");
+            Assert::AreEqual(testSuccess + 1, testCount, L"The packet count did not equal what it should after adding a packet to the list");
         }
 
         TEST_METHOD(SaveImage_SavesBufferOfTestData)
