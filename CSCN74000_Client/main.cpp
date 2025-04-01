@@ -16,7 +16,7 @@ int main(void) {
     ConnectionData::Connection flightConnection;
     PacketData::PacketDef received;
     PacketData::PacketDef toSend;
-    Menu log;
+    ui::Menu log;
     bool shutdown;
     char recvBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
     ConnectionData::address rxSender;

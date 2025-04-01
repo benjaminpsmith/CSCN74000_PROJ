@@ -9,7 +9,6 @@
 
 using namespace Microsoft::VisualStudio::CppUnitTestFramework;
 
-
 #define ERROR_CODE -1
 #define SUCCESS_CODE 1
 #define POSITION_SIZE 40
@@ -509,17 +508,17 @@ namespace LoggingTests
     public:
         TEST_METHOD(GetLog_ReturnsNonNullLogPointer)
         {
-            Menu menulog;
-            const Log* log = menulog.getLog();
+            ui::Menu menulog;
+            const ui::Log* log = menulog.getLog();
 
-            Assert::IsNotNull(log, L"The Log pointer should not be null if the Menu was instantiated");
+            Assert::IsNotNull(log, L"The Log pointer should not be null if the ui::Menu was instantiated");
 
         }
 
         TEST_METHOD(InsertingLogEntry_CorrectNumberOfEntriesStored)
         {
-            Menu menulog;
-            const Log* log = menulog.getLog();
+            ui::Menu menulog;
+            const ui::Log* log = menulog.getLog();
             char* testVal = "test entry";
             int logSize = 0;
             int correctNumberOfEntries = 1;
@@ -533,8 +532,8 @@ namespace LoggingTests
 
         TEST_METHOD(InstantiatingMenuInstantiatesLog_LogOpensFileLog)
         {
-            Menu menulog;
-            Log* log = menulog.getLog();
+            ui::Menu menulog;
+            ui::Log* log = menulog.getLog();
             bool fileIsOpen = false;
             
             char* testVal = "test entry";
@@ -547,13 +546,13 @@ namespace LoggingTests
 
         TEST_METHOD(MenuInsertionOfText_LogWritesToFile)
         {
-            Menu menulog;
+            ui::Menu menulog;
             char* testVal = "test entry";
             bool wroteToFile = false;
 
             wroteToFile = menulog.writeToFileLog(testVal, strlen(testVal));
 
-            Assert::AreEqual(wroteToFile, true, L"Menu should open a ofstream object when instantiated. Writing should not fail");
+            Assert::AreEqual(wroteToFile, true, L"ui::Menu should open a ofstream object when instantiated. Writing should not fail");
 
         }
     };

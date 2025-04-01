@@ -29,8 +29,8 @@ namespace Server {
         RECEIVING
     }ServerState;
 
-    int serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, std::atomic<bool>& shutdown, Menu& menu);
-    int menuThread(Menu& menu, std::atomic<bool>& shutdown);
+    int serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, std::atomic<bool>& shutdown, ui::Menu& menu);
+    int menuThread(ui::Menu& menu, std::atomic<bool>& shutdown);
 
 }
 
@@ -40,9 +40,7 @@ int main(void){
     bool firstHandshakePacket = false;
     std::atomic<bool> shutdown = false;
     std::atomic<bool> closeMenu = false;
-    Menu mainMenu;
-
-
+    ui::Menu mainMenu;
 
     std::thread menuThread([&] {
         int result = Server::menuThread(mainMenu, closeMenu);
@@ -89,7 +87,7 @@ int main(void){
     serverThread.join();
 }
 
-int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, std::atomic<bool>& shutdown, Menu& log)
+int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, std::atomic<bool>& shutdown, ui::Menu& log)
 {
     Server::ServerState state;
     ConnDetails connectionDetails;
@@ -440,7 +438,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
     return 1;
 }
 
-int Server::menuThread(Menu& menu, std::atomic<bool>& shutdown)
+int Server::menuThread(ui::Menu& menu, std::atomic<bool>& shutdown)
 {
     while (!shutdown)
     {
