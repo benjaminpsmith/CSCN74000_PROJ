@@ -91,18 +91,18 @@ public:
 		return *this;
 	}
 	
-	bool writeToFile(const char* logMessage, int length)
+	bool writeToFile(const char logMessage[], int length)
 	{
 		bool ret = false;
 		char hexBuff[LOG_MAX_BUFFER_LENGTH];
-		int converted = 0;
 		char format[3] = "%x";
 
 		if (fileLogger.isOpen())
 		{
+			int converted = 0;
 			converted = sprintf_s(&hexBuff[0], LOG_MAX_BUFFER_LENGTH, &format[0], &logMessage[0], length);
 
-			if (fileLogger.write(hexBuff, converted) <= 0)
+			if (fileLogger.write(&hexBuff[0], converted) <= 0)
 			{
 				throw MENU_FILEWRITEEXCEPTION;
 			}
@@ -164,7 +164,7 @@ public:
 	{
 		//clear the console
 		char clsCmd[4] = "cls";
-		int ret = std::system(clsCmd);
+		int ret = std::system(&clsCmd[0]);
 		if (ret != 0)
 		{
 			messages << "Failed to print the log";

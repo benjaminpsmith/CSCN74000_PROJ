@@ -11,6 +11,7 @@
 #define BLACKBOX_FILE "_blackbox.csv"
 #define RECV_MSG_MAX_LEN 12
 #define SEND_MSG_MAX_LEN 10
+#define MAX_LOG_MSG_LEN 256
 
 namespace Server {
 
@@ -57,12 +58,12 @@ int main(void){
         char opt = 0;
         char clsCmd[4] = "cls";
         //clear the console
-        if (std::system(clsCmd) != 0)
+        if (std::system(&clsCmd[0]) != 0)
         {
             mainMenu << "Failed to clear screen";
         }
         mainMenu.printMenu();
-
+        
         opt = getchar();
         
         switch (opt)
@@ -101,7 +102,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
     char recvBuffer[PacketData::Constants::MAX_PACKET_LENGTH];
     char sendingMsg[SEND_MSG_MAX_LEN] = "Sending: ";
     char receivingMsg[RECV_MSG_MAX_LEN] = "Receiving: ";
-    char messageBuff[256] = { 0 };
+    char messageBuff[MAX_LOG_MSG_LEN] = { 0 };
     const char* IPADDRESS = SERVER_IP;
     const char* SECUREPASSWD = SECURE_PASSWORD;
     int attempts = 0;
@@ -276,7 +277,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
                 {
                     const char* data = received.getData();
                     PositionData::Position pos(data);
-                    bytesPrinted = sprintf(&messageBuff[0], &posFormat[0], pos.latitude, pos.longitude, pos.heading, pos.velocity, pos.altitude);
+                    bytesPrinted = sprintf_s(&messageBuff[0], MAX_LOG_MSG_LEN, &posFormat[0], pos.latitude, pos.longitude, pos.heading, pos.velocity, pos.altitude);
                     log << messageBuff;
                     // Create a position object from the string     
                     std::string filename = std::to_string(received.getSrc()) + BLACKBOX_FILE;    // Create the filename for the black-box data
@@ -302,7 +303,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
 
                     int bytesToSend = toSend.Serialize(&sendBuffer[0]);  // SEND ACK
                     int sendResult = sendto(connectionDetails.socket, &sendBuffer[0], bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-                    if (!log.writeToFileLog(sendingMsg, SEND_MSG_MAX_LEN))
+                    if (!log.writeToFileLog(&sendingMsg[0], SEND_MSG_MAX_LEN))
                     {
                         log << "Logger failed to write to file";
                     }
@@ -316,20 +317,20 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
                 {
 
                     int i = 0;
-
+                    char packetCountMsgFormat[] = "%d image packets are being sent";
                     const std::vector<PacketDef*>* packetList = nullptr;
                     WeatherImage::Image weatherImage;
 
                     state = Server::SERVER_STATE::PROCESSING;
                     log << "Server is now processing";
 
-                    weatherImage.loadImage();
+                    err = weatherImage.loadImage();
                     packetList = weatherImage.getPacketList();
 
                     //ACK for the request
                     ackReceived.setTotalCount(weatherImage.getPacketCount());
-                    int bytesToSend = ackReceived.Serialize(sendBuffer);  // SEND ACK
-                    int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+                    int bytesToSend = ackReceived.Serialize(&sendBuffer[0]);  // SEND ACK
+                    int sendResult = sendto(connectionDetails.socket, &sendBuffer[0], bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
                     if (!log.writeToFileLog(&sendingMsg[0], SEND_MSG_MAX_LEN))
                     {
                         log << "Logger failed to write to file";
@@ -343,7 +344,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
                     //Only images can be larger than the packet body length.
                     state = Server::SERVER_STATE::SENDING;//set sending state for as long as there are packets to transmit from the packet list.
                     log << "Server is now sending";
-                    sprintf(messageBuff, "%d image packets are being sent", static_cast<int>(packetList->size()));
+                    err = sprintf_s(&messageBuff[MAX_LOG_MSG_LEN], MAX_LOG_MSG_LEN, &packetCountMsgFormat[0], static_cast<int>(packetList->size()));
                     log << messageBuff;
 
                     while (i < packetList->size() && !watchdogError)
@@ -351,9 +352,9 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
                         PacketDef* imagePacket = packetList->at(i);
                         bytesRead = 0;
 
-                        int bytesToSend = imagePacket->Serialize(sendBuffer);  // Send image packet after packet, and expect ACK responses for each
-                        int sendResult = sendto(connectionDetails.socket, sendBuffer, bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-                        if (!log.writeToFileLog(sendingMsg, SEND_MSG_MAX_LEN))
+                        int bytesToSend = imagePacket->Serialize(&sendBuffer[0]);  // Send image packet after packet, and expect ACK responses for each
+                        int sendResult = sendto(connectionDetails.socket, &sendBuffer[0], bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
+                        if (!log.writeToFileLog(&sendingMsg[0], SEND_MSG_MAX_LEN))
                         {
                             log << "Logger failed to write to file";
                         }
@@ -364,8 +365,8 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
 
                         if (sendResult > 0)
                         {
-                            bytesRead = recvfrom(connectionDetails.socket, recvBuffer, PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
-                            if (!log.writeToFileLog(receivingMsg, RECV_MSG_MAX_LEN))
+                            bytesRead = recvfrom(connectionDetails.socket, &recvBuffer[0], PacketData::Constants::MAX_PACKET_LENGTH, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), &addrLength);
+                            if (!log.writeToFileLog(&receivingMsg[0], RECV_MSG_MAX_LEN))
                             {
                                 log << "Logger failed to write to file";
                             }
@@ -382,7 +383,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
                             else
                             {
                                 //success
-                                received = PacketDef(recvBuffer, bytesRead);
+                                received = PacketDef(&recvBuffer[0], bytesRead);
                                 log << received;
                                 if (received.getFlag() == PacketDef::Flag::ACK)
                                 {

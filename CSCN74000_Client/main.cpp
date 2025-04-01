@@ -67,7 +67,7 @@ int main(void) {
 
     while (!shutdown)
     { 
-        if (std::system(clsCmd) != 0)
+        if (std::system(&clsCmd[0]) != 0)
         {
             log << "Failed to clear the screen";
         }
@@ -216,7 +216,6 @@ int main(void) {
                 {
                     WeatherImage::Image imgReceived;
                     int flag = 0;
-                    int packetsToReceive = 0;
                     unsigned int totalSize = imgRequest.Serialize(&buffer[0]);
                     log << "Preparing to send";
 
@@ -258,6 +257,13 @@ int main(void) {
                     }
                     else if (flag == PacketData::PacketDef::ACK)
                     {
+
+                        int packetsToReceive = 0;
+                        const int LOGMSGFORMAT = 9;
+                        const size_t LOGMSGLEN = 40;
+                        char logBuffer[LOGMSGLEN] = { 0 };
+                        char logFormat[LOGMSGFORMAT] = "%s %d %s";
+
                         packetsToReceive = received.getTotalCount();
 
                         //Receive incoming Image packets
@@ -292,7 +298,7 @@ int main(void) {
 
                             int bytesToSend = ackReceived.Serialize(&buffer[0]);  // SEND ACK
                             int sendResult = sendto(connectionDetails.socket, &buffer[0], bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-                            if(!log.writeToFileLog(sendingMsg, strlen(receivingMsg)))
+                            if(!log.writeToFileLog(&sendingMsg[0], strnlen(&receivingMsg[0], RECV_MSG_MAX_LEN)))
                             {
                                 log << "Logger failed to write to file";
                             }
@@ -301,14 +307,19 @@ int main(void) {
                                 log << "Logger failed to write to file";
                             }
                         }
-
-                        log << (std::string("Received ") + std::to_string(packetsToReceive) + std::string(" Image packets\n")).c_str();
+                        
+                        err = sprintf_s(&logBuffer[0], LOGMSGLEN, &logFormat[0], &receivingMsg[0], packetsToReceive, "image packets");
+                        log << logBuffer;
 
                         //write image to file - 
                         if (imgReceived.saveImage())
                         {
                             log << "Successfully saved the transmitted image";
                         }
+                    }
+                    else
+                    {
+                        log << "A different type of packet was received. Where did you come from?";
                     }
                 }
             }
