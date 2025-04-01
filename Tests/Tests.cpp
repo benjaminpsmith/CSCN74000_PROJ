@@ -577,7 +577,7 @@ namespace ImageTests
         TEST_METHOD(GetPacketList_ReturnsVectorOfPackets)
         {
             WeatherImage::Image img;
-            int testSuccess = 158;
+            int testSuccess = 1;
             int success = -1;
             const std::vector<PacketData::PacketDef*>* pPacketList = nullptr;
 
@@ -591,7 +591,7 @@ namespace ImageTests
         TEST_METHOD(GetPacketCount_ReturnsCorrectNumberOfPackets)
         {
             WeatherImage::Image img;
-            int testSuccess = 158;
+            int testSuccess = 1;
             int testCount = 0;
             int success = -1;
 
@@ -604,7 +604,7 @@ namespace ImageTests
         TEST_METHOD(Addsome_AddsPacketToPacketListOfImageData)
         {
             WeatherImage::Image img;
-            int testSuccess = 158;
+            int testSuccess = 1;
             int testCount = 0;
             int success = -1;
             int byteBuffer[5] = { 1, 2, 3, 4, 5 };
@@ -625,7 +625,6 @@ namespace ImageTests
         {
             WeatherImage::Image img;
             PacketData::PacketDef packet;
-            int testSuccess = 158;
             int retVal = -99;
             int testCount = 0;
             int readSuccess = 0;

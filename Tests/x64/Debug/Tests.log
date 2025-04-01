@@ -1,27 +1,24 @@
 ﻿  Tests.cpp
-C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\image.h(63,22): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\image.h(64,22): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
   (compiling source file '/Tests.cpp')
   
-C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\image.h(69,35): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\image.h(66,17): warning C4244: 'initializing': conversion from 'std::streamoff' to 'int', possible loss of data
   (compiling source file '/Tests.cpp')
   
-C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\image.h(101,76): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
+C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\image.h(70,35): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
   (compiling source file '/Tests.cpp')
   
-C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\image.h(122,37): warning C4267: 'return': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\image.h(98,76): warning C4267: 'argument': conversion from 'size_t' to 'unsigned int', possible loss of data
   (compiling source file '/Tests.cpp')
   
-C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\menu.h(33,32): warning C4477: 'sprintf' : format string '%x' requires an argument of type 'unsigned int', but variadic argument 1 has type 'char *'
+C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\image.h(117,37): warning C4267: 'return': conversion from 'size_t' to 'int', possible loss of data
   (compiling source file '/Tests.cpp')
   
-C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\CSCN74000_FinalProject\menu.h(33,32): warning C4313: 'sprintf': '%x' in format string conflicts with argument 1 of type 'char *'
+C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\Tests\Tests.cpp(527,36): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
   (compiling source file '/Tests.cpp')
   
-C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\Tests\Tests.cpp(511,36): warning C4267: '=': conversion from 'size_t' to 'int', possible loss of data
+C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\Tests\Tests.cpp(553,65): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
   (compiling source file '/Tests.cpp')
   
-C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\Tests\Tests.cpp(537,65): warning C4267: 'argument': conversion from 'size_t' to 'int', possible loss of data
-  (compiling source file '/Tests.cpp')
-  
-     Creating library C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\x64\Debug\Tests.lib and object C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\x64\Debug\Tests.exp
-  Tests.vcxproj -> C:\Users\tbtro\source\repos\CSCN74000_PROJECT_FINAL\x64\Debug\Tests.dll
+     Creating library C:\Users\tbtro\Source\Repos\CSCN74000_PROJECT_FINAL\x64\Debug\Tests.lib and object C:\Users\tbtro\Source\Repos\CSCN74000_PROJECT_FINAL\x64\Debug\Tests.exp
+  Tests.vcxproj -> C:\Users\tbtro\Source\Repos\CSCN74000_PROJECT_FINAL\x64\Debug\Tests.dll
