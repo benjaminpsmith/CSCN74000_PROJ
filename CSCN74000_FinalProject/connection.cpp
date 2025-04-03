@@ -74,21 +74,21 @@ namespace ConnectionData {
 		{
 			handshakePacket.setFlag(PacketData::PacketDef::Flag::AUTH);
 			ret = handshakePacket.Serialize(&buffer[0]);
-
+			 
 			if (ret)
 			{
 				ret = sendto(connectionDetails.socket, &buffer[0], ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 				int err = WSAGetLastError();
 			}
 			state = ConnState::HANDSHAKING;
-		}
+		} 
 
 		if (state == ConnState::HANDSHAKING && authBit == PacketData::PacketDef::Flag::AUTH && ackBit == PacketData::PacketDef::Flag::ACK)
 		{
 			handshakePacket.setFlag(PacketData::PacketDef::Flag::ACK);
 			ret = handshakePacket.Serialize(&buffer[0]);
 
-			if (ret)
+			if (ret) 
 			{
 				ret = sendto(connectionDetails.socket, &buffer[0], ret, 0, reinterpret_cast<struct sockaddr*>(targetAddress), sizeof(*targetAddress));
 			}

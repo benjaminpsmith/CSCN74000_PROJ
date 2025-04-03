@@ -259,7 +259,7 @@ int main(void) {
                     {
 
                         int packetsToReceive = 0;
-                        const int LOGMSGFORMAT = 9;
+                        const int LOGMSGFORMAT = 9; 
                         const size_t LOGMSGLEN = 40;
                         char logBuffer[LOGMSGLEN] = { 0 };
                         char logFormat[LOGMSGFORMAT] = "%s %d %s";
@@ -298,9 +298,9 @@ int main(void) {
 
                             int bytesToSend = ackReceived.Serialize(&buffer[0]);  // SEND ACK
                             int sendResult = sendto(connectionDetails.socket, &buffer[0], bytesToSend, NULL, reinterpret_cast<struct sockaddr*>(&rxSender), addrLength);
-                            if(!log.writeToFileLog(&sendingMsg[0], strnlen(&receivingMsg[0], RECV_MSG_MAX_LEN)))
+                            if(!log.writeToFileLog(&sendingMsg[0], static_cast<int>(strnlen(&receivingMsg[0], RECV_MSG_MAX_LEN))))
                             {
-                                log << "Logger failed to write to file";
+                                log << "Loggesr failed to write to file";
                             }
                             if(!log.writeToFileLog(&buffer[0], bytesToSend))
                             {

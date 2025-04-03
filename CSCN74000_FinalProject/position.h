@@ -114,7 +114,7 @@ namespace PositionData {
 
                 size_t offset = 0;
 
-                // Serialize latitude
+                // Serialize latitude 
                 if (memcpy(&outBuff[offset], &latitude, sizeof(double)) != &outBuff[offset]) { success = false; }
                 offset += sizeof(double);
 

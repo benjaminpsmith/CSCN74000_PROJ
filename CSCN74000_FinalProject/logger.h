@@ -18,7 +18,7 @@ namespace debug
 #endif
 		std::ofstream msgOutFileStream;
 
-	public:
+	public: 
 		Logger(const char* path = DEFAULT_LOG_PATH)
 		{
 			this->msgOutFileStream.open(path, std::fstream::out | std::ios::app);

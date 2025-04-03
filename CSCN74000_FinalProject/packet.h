@@ -205,7 +205,7 @@ namespace PacketData {
 
             int packetSize = SUCC;
 
-            if (outBuffer == nullptr) {
+            if (outBuffer == nullptr) { 
                 packetSize = ERR; // Invalid output buffer
             }
             else {

@@ -29,7 +29,7 @@ namespace WeatherImage {
 		int loadImage(const char* pathToImage = DEFAULT_IMAGE_PATH)
 		{
 			int retVal;
-			size_t imageSize;
+			int imageSize;
 			std::streamsize bytesRead;
 			int packetizedLen;
 			int sequence;
@@ -39,9 +39,8 @@ namespace WeatherImage {
 			packetizedLen = 0;
 			sequence = 1;
 			bytesRead = 0;
-			const int length = PacketData::Constants::MAX_BODY_LENGTH;
-			char buffer[length];
 			std::streampos pos;
+			char buffer[PacketData::Constants::MAX_BODY_LENGTH];
 
 			pos = 0;
 
@@ -58,12 +57,12 @@ namespace WeatherImage {
 				{
 					pFile = this->imageInFileStream.rdbuf();
 
-					imageSize = pFile->pubseekoff(0, this->imageInFileStream.end, this->imageInFileStream.in);
+					imageSize = static_cast<int>(pFile->pubseekoff(0, this->imageInFileStream.end, this->imageInFileStream.in));
 					pos = pFile->pubseekpos(0, this->imageInFileStream.in);
 
 					this->imgSize = imageSize;
 
-					for (int i = pos; i < imageSize; i += packetizedLen)
+					for (int i = static_cast<int>(pos); i < imageSize; i += packetizedLen)
 					{
 						if ((imageSize - i) < PacketData::Constants::MAX_BODY_LENGTH)
 						{
@@ -95,7 +94,7 @@ namespace WeatherImage {
 
 					for (int i = 0; i < this->packetizedImage.size(); i++)
 					{
-						this->packetizedImage.at(i)->setTotalCount(this->packetizedImage.size());
+						this->packetizedImage.at(i)->setTotalCount(static_cast<int>(this->packetizedImage.size()));
 					}
 				}
 			}
@@ -111,13 +110,13 @@ namespace WeatherImage {
 		{
 			return &this->packetizedImage;
 		}
-
+		 
 		int getPacketCount()
 		{
-			return this->packetizedImage.size();
+			return static_cast<int>(this->packetizedImage.size());
 		}
 
-		void addSome(PacketData::PacketDef& packet)
+		void addSome(const PacketData::PacketDef& packet)
 		{
 			PacketData::PacketDef* anotherPacket = new PacketData::PacketDef();
 			*anotherPacket = packet;

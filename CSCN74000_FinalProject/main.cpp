@@ -82,9 +82,9 @@ int main(void){
     
     closeMenu = true;
 
-    menuThread.join();
-
     serverThread.join();
+
+    menuThread.join();
 }
 
 int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_t serverPort, std::atomic<bool>& shutdown, ui::Menu& log)
@@ -107,7 +107,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
     int packetCount = 0;
     char posFormat[FOMRAT_LENGTH] = POSITION_PRINT_FORMAT;
 
-    address rxSender;
+    address rxSender = { 0 };
     int addrLength;
     int bytesRead;
     std::thread timerThread;
@@ -144,20 +144,21 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
     //awaiting, idle, processing, sending or receiving
 
     timerThread = std::thread([&] {
-        while (!shutdown)
+        while (!shutdown && !watchdogError)
         {
-            Sleep(60000);
             if (watchDogKick == false)
             {
                 watchdogError = true;
             }
             else
-            {
+            { 
                 watchDogKick = false;
+                Sleep(60000);
             }
         }
     });
 
+    timerThread.detach();
 
     while (!shutdown && !watchdogError)
     {
@@ -342,7 +343,7 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
                     //Only images can be larger than the packet body length.
                     state = Server::SERVER_STATE::SENDING;//set sending state for as long as there are packets to transmit from the packet list.
                     log << "Server is now sending";
-                    err = sprintf_s(&messageBuff[MAX_LOG_MSG_LEN], MAX_LOG_MSG_LEN, &packetCountMsgFormat[0], static_cast<int>(packetList->size()));
+                    err = sprintf_s(&messageBuff[0], MAX_LOG_MSG_LEN, &packetCountMsgFormat[0], static_cast<int>(packetList->size()));
                     log << messageBuff;
 
                     while (i < packetList->size() && !watchdogError)
@@ -432,8 +433,8 @@ int Server::serverThread(PacketDef& received, bool firstHandshakePacket, uint16_
     }
     log << "Shutting down";
 
-   
-    timerThread.join();
+    
+    //timerThread.join();
 
     return 1;
 }

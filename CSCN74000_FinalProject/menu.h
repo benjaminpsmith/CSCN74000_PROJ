@@ -93,7 +93,7 @@ namespace ui
 			return *this;
 		}
 
-		bool writeToFile(const char logMessage[], int length)
+		bool writeToFile(const char* logMessage, int length)
 		{
 			bool ret = false;
 			char hexBuff[LOG_MAX_BUFFER_LENGTH];
@@ -101,8 +101,8 @@ namespace ui
 
 			if (fileLogger.isOpen())
 			{
-				int converted = 0;
-				converted = sprintf_s(&hexBuff[0], LOG_MAX_BUFFER_LENGTH, &format[0], &logMessage[0], length);
+				int converted = 0; 
+				converted = sprintf_s(&hexBuff[0], LOG_MAX_BUFFER_LENGTH, &format[0], logMessage, length);
 
 				if (fileLogger.write(&hexBuff[0], converted) <= 0)
 				{
