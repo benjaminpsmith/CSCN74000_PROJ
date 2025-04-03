@@ -126,9 +126,11 @@ int main(void) {
 
         innerContinue = true;
 
+        bool send_blackbox_data = false;
+
 		while (flightConnection.getAuthenticationState() == ConnectionData::ConnState::AUTHENTICATED && !shutdown && innerContinue)   // Loop
 		{
-            bool send_blackbox_data = false;
+            
 
             log.printLog();
 
@@ -202,6 +204,8 @@ int main(void) {
                         innerContinue = false;
                     }
                 } 
+
+                send_blackbox_data = false;
 			}
             else if (!send_blackbox_data) {   // Request an image
 
@@ -322,6 +326,8 @@ int main(void) {
                         log << "A different type of packet was received. Where did you come from?";
                     }
                 }
+
+                send_blackbox_data = true;
             }
 			else {  // Error handling
 
